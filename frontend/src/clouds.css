@@ -1,0 +1,128 @@
+/* Realistic clouds using multiple overlapping circles */
+.cloud {
+  position: fixed;
+  z-index: 1;
+  pointer-events: none;
+  filter: blur(1px);
+  opacity: 0.5;
+}
+
+.cloud::before,
+.cloud::after {
+  content: '';
+  position: absolute;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+}
+
+/* Cloud 1 */
+.cloud-1 {
+  top: 20px;
+  left: 20%;
+  animation: cloudDrift1 50s linear infinite;
+}
+
+.cloud-1::before {
+  width: 100px;
+  height: 100px;
+  top: 0;
+  left: 0;
+  box-shadow: 
+    80px 10px 0 10px rgba(255, 255, 255, 0.6),
+    140px 0 0 5px rgba(255, 255, 255, 0.65),
+    40px 30px 0 -5px rgba(255, 255, 255, 0.7),
+    120px 30px 0 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Cloud 2 */
+.cloud-2 {
+  top: 80px;
+  right: 15%;
+  animation: cloudDrift2 60s linear infinite;
+}
+
+.cloud-2::before {
+  width: 120px;
+  height: 120px;
+  top: 0;
+  left: 0;
+  box-shadow: 
+    90px 15px 0 5px rgba(255, 255, 255, 0.65),
+    160px 5px 0 0 rgba(255, 255, 255, 0.6),
+    50px 35px 0 -10px rgba(255, 255, 255, 0.7),
+    130px 35px 0 -5px rgba(255, 255, 255, 0.65);
+}
+
+/* Cloud 3 */
+.cloud-3 {
+  top: 150px;
+  left: 40%;
+  animation: cloudDrift3 70s linear infinite;
+}
+
+.cloud-3::before {
+  width: 80px;
+  height: 80px;
+  top: 0;
+  left: 0;
+  box-shadow: 
+    60px 8px 0 8px rgba(255, 255, 255, 0.6),
+    110px 0 0 3px rgba(255, 255, 255, 0.65),
+    30px 25px 0 -3px rgba(255, 255, 255, 0.7),
+    90px 25px 0 0 rgba(255, 255, 255, 0.6);
+}
+
+@keyframes cloudDrift1 {
+  0% { transform: translateX(-200px); }
+  100% { transform: translateX(calc(100vw + 200px)); }
+}
+
+@keyframes cloudDrift2 {
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(-300px); }
+}
+
+@keyframes cloudDrift3 {
+  0% { transform: translateX(-250px); }
+  100% { transform: translateX(calc(100vw + 250px)); }
+}
+
+/* Flying Birds Animation */
+.birds-group {
+  position: fixed;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+.birds-group svg {
+  width: 150px;
+  height: 100px;
+}
+
+.bird-1 {
+  bottom: 0;
+  left: -200px;
+  animation: birdsFly1 45s linear infinite;
+}
+
+.bird-2 {
+  bottom: 100px;
+  left: -200px;
+  animation: birdsFly2 50s linear infinite 10s;
+}
+
+@keyframes birdsFly1 {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(calc(100vw + 300px), -80vh); }
+}
+
+@keyframes birdsFly2 {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(calc(100vw + 300px), -70vh); }
+}
+
+@keyframes wingFlap {
+  0%, 100% { d: path('M 0,0 Q -5,-8 -10,-5'); }
+  50% { d: path('M 0,0 Q -5,2 -10,0'); }
+}

@@ -1,0 +1,138 @@
+/* Global Purple/Blue Theme */
+:root {
+  --primary-gradient: linear-gradient(135deg, #9333ea 0%, #3b82f6 100%);
+  --secondary-gradient: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+  --bg-gradient: linear-gradient(135deg, #f3e8ff 0%, #dbeafe 50%, #e0e7ff 100%);
+  --card-bg: rgba(255, 255, 255, 0.8);
+  --hover-bg: rgba(147, 51, 234, 0.1);
+}
+
+body {
+  background: var(--bg-gradient) !important;
+  background-attachment: fixed !important;
+}
+
+/* Cards & Containers */
+.bg-white {
+  background: var(--card-bg) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Buttons */
+button:not(.no-theme) {
+  transition: all 0.3s ease !important;
+}
+
+button:not(.no-theme):hover {
+  transform: scale(1.05) !important;
+  box-shadow: 0 10px 25px rgba(147, 51, 234, 0.3) !important;
+}
+
+/* Primary Buttons */
+.bg-blue-600, .bg-blue-500 {
+  background: var(--primary-gradient) !important;
+}
+
+.bg-green-600, .bg-green-500 {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+}
+
+.bg-red-600, .bg-red-500 {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+}
+
+.bg-yellow-600, .bg-yellow-500 {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+}
+
+/* Borders */
+.border, .border-gray-200, .border-gray-300 {
+  border-color: rgba(147, 51, 234, 0.2) !important;
+}
+
+/* Shadows */
+.shadow, .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl {
+  box-shadow: 0 10px 30px rgba(147, 51, 234, 0.15) !important;
+}
+
+/* Inputs */
+input:not([type="checkbox"]):not([type="radio"]), 
+textarea, 
+select {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border-color: rgba(147, 51, 234, 0.3) !important;
+  backdrop-filter: blur(5px) !important;
+  transition: all 0.3s ease !important;
+}
+
+input:focus, textarea:focus, select:focus {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: #9333ea !important;
+  box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1) !important;
+}
+
+/* Rounded corners */
+.rounded-lg {
+  border-radius: 1rem !important;
+}
+
+.rounded-xl {
+  border-radius: 1.5rem !important;
+}
+
+/* Hover effects */
+.hover\:bg-gray-50:hover,
+.hover\:bg-gray-100:hover {
+  background: var(--hover-bg) !important;
+}
+
+/* Gradient text */
+.text-gradient {
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.5s ease-out;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(147, 51, 234, 0.05);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #9333ea 0%, #3b82f6 100%);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #7e22ce 0%, #2563eb 100%);
+}

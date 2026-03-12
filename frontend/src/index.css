@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* Success Stories roll-out animation */
+@keyframes middleRollUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-middleRollUp {
+  animation: middleRollUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes slideDown {
+  from { max-height: 0; opacity: 0; transform: translateY(-10px); }
+  to { max-height: 500px; opacity: 1; transform: translateY(0); }
+}
