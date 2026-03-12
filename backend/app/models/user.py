@@ -28,8 +28,6 @@ class User(Base):
     shift_start = Column(String(10), nullable=True)
     shift_end = Column(String(10), nullable=True)
     week_off = Column(String(20), nullable=True)
-    latest_hire_date = Column(Date, nullable=True)
-    total_tenure = Column(String(100), nullable=True)
     total_tenure = Column(String(100), nullable=True)
     is_email_verified = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)

@@ -27,7 +27,6 @@ def get_profile(db: Session = Depends(get_db), current_user: User = Depends(get_
         "profile_picture": current_user.profile_picture,
         "profilePhoto": photo, "profileCompletion": completion,
         "created_at": str(current_user.created_at).split(" ")[0] if current_user.created_at else None,
-        "latest_hire_date": str(current_user.latest_hire_date) if current_user.latest_hire_date else None,
         "total_tenure": current_user.total_tenure,
     }
 

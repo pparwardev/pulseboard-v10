@@ -19,7 +19,7 @@ def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_cu
              "contact_number": u.contact_number, "location": u.location, "marketplace": u.marketplace,
              "supports_marketplace": u.supports_marketplace, "date_of_birth": str(u.date_of_birth) if u.date_of_birth else None,
              "shift_start": u.shift_start, "shift_end": u.shift_end, "week_off": u.week_off,
-             "team_name": u.team_name} for u in users]
+             "team_name": u.team_name, "total_tenure": u.total_tenure} for u in users]
 
 
 @router.put("/users/{user_id}/approve")
