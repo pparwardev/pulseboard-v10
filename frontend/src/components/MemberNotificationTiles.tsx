@@ -75,7 +75,7 @@ export default function MemberNotificationTiles({ mode = 'full', onTileExpand }:
       { bg: '#fff7ed', border: '#fed7aa', text: '#9a3412', accent: '#f97316' },
     ];
     return (
-      <div className="flex flex-col gap-2 h-full overflow-y-auto">
+      <div className="flex flex-col gap-2">
         <p className="text-xs font-bold text-gray-700 flex items-center gap-1 sticky top-0 bg-[#eef1f8] z-10 py-1">📬 Notifications</p>
         {tiles.map((tile, tileIdx) => {
           const isActive = expandedTile === tileIdx;

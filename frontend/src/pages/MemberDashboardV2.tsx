@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import ShiftWeekOff from '../components/ShiftWeekOff';
 import MemberNotificationTiles from '../components/MemberNotificationTiles';
+import OnlineTeamTile from '../components/OnlineTeamTile';
 import { getInternalTitle } from '../utils/roleMapping';
 import './ManagerDashboardV2.css';
 
@@ -11,13 +11,13 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
 
 function TeamBarChart({ members, myLoginId, ottoMembers = [] }: { members: any[]; myLoginId?: string; ottoMembers?: any[] }) {
   const [animated, setAnimated] = useState(false);
-  const onLeaveLogins = new Set(ottoMembers.map((m: any) => m.tm_employee_id).filter(Boolean));
+  const onLeaveLogins = new Set(ottoMembers.map((m: any) => m.login).filter(Boolean));
   const sorted = [...members].sort((a, b) => (b.avg_score || 0) - (a.avg_score || 0));
 
   useEffect(() => { const t = setTimeout(() => setAnimated(true), 100); return () => clearTimeout(t); }, []);
 
   if (!sorted.length) return (
-    <div className="h-full flex flex-col items-center justify-center text-gray-300 p-8" style={{ minHeight: 400 }}>
+    <div className="h-full flex flex-col items-center justify-center text-gray-300 p-8">
       <p className="text-sm font-medium text-gray-400">No performance data available</p>
       <p className="text-xs text-gray-300 mt-1">Data will appear here once metrics are published</p>
     </div>
@@ -29,12 +29,12 @@ function TeamBarChart({ members, myLoginId, ottoMembers = [] }: { members: any[]
   const ini = (n: string) => n?.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 
   return (
-    <div className="flex flex-col" style={{ minHeight: 400 }}>
+    <div className="flex flex-col h-full">
       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
         <h3 className="text-sm font-bold text-gray-700">📊 Team Performance</h3>
         <span className="text-[10px] text-gray-400">{sorted.length} members</span>
       </div>
-      <div className="overflow-x-auto px-4 pb-3 pt-4 bar-chart-scroll">
+      <div className="overflow-x-auto flex-1 px-4 pb-3 pt-4 bar-chart-scroll">
         <div className="flex items-end gap-3" style={{ minWidth: sorted.length * 68 }}>
           {sorted.map((m, i) => {
             const score = m.avg_score || 0;
@@ -151,7 +151,7 @@ export default function MemberDashboardV2() {
   }
 
   // Find my metrics
-  const me = myMetrics.find((m: any) => m.login_id === data?.user?.employee_id);
+  const me = myMetrics.find((m: any) => m.login_id === data?.user?.login);
   const metricEntries = me ? Object.entries(me.metrics || {}) as [string, any][] : [];
 
   const TILE_STYLES = [
@@ -224,12 +224,6 @@ export default function MemberDashboardV2() {
                 </div>
                 );
               })()}
-              <ShiftWeekOff
-                initialShiftStart={data.user.shift_start}
-                initialShiftEnd={data.user.shift_end}
-                initialWeekOff={data.user.week_off}
-                theme="light"
-              />
             </div>
           </div>
           <div className="shrink-0 ml-6 flex flex-col items-center">
@@ -241,7 +235,7 @@ export default function MemberDashboardV2() {
             {(data.user.team || data.user.role) && (
               <div className="mt-2 text-center">
                 {data.user.team && <p className="text-white text-xs font-semibold">{data.user.team}</p>}
-                <p className="text-indigo-300 text-[10px] capitalize mt-0.5">{getInternalTitle(data.user.role, data.user.team)}</p>
+                <p className="text-white text-[11px] font-medium capitalize mt-0.5">{getInternalTitle(data.user.role, data.user.team)}</p>
               </div>
             )}
           </div>
@@ -336,7 +330,7 @@ export default function MemberDashboardV2() {
             </div>
           ) : (
             <div className="h-full overflow-y-auto">
-              <TeamBarChart members={myMetrics} myLoginId={data?.user?.employee_id} ottoMembers={data?.otto_members || []} />
+              <TeamBarChart members={myMetrics} myLoginId={data?.user?.login} ottoMembers={data?.otto_members || []} />
             </div>
           )}
         </div>
@@ -345,7 +339,8 @@ export default function MemberDashboardV2() {
       </div>{/* end main content */}
 
       {/* Right Sidebar */}
-      <div className="w-[300px] shrink-0 p-4 sidebar-scroll" style={{ height: '100vh', position: 'sticky', top: 0, minWidth: 300 }}>
+      <div className="w-[300px] shrink-0 p-4" style={{ minWidth: 300, position: 'sticky', top: 0, height: '100vh', overflowY: 'auto' }}>
+        <OnlineTeamTile />
         <MemberNotificationTiles mode="sidebar" onTileExpand={(tile: any) => setExpandedTileData(tile)} />
       </div>
     </div>

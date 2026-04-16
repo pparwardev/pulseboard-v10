@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import ShiftWeekOff from '../components/ShiftWeekOff';
 import MemberNotificationTiles from '../components/MemberNotificationTiles';
+import OnlineTeamTile from '../components/OnlineTeamTile';
 import { getInternalTitle } from '../utils/roleMapping';
 import './ManagerDashboardV2.css';
 
@@ -26,7 +26,7 @@ const initials = (n: string) => n?.split(' ').filter(w => w).map(w => w[0]).join
 
 function TeamBarChart({ perfTiles, ottoMembers = [] }: { perfTiles: any[]; ottoMembers?: any[] }) {
   const [animated, setAnimated] = useState(false);
-  const onLeaveLogins = new Set(ottoMembers.map((m: any) => m.tm_employee_id).filter(Boolean));
+  const onLeaveLogins = new Set(ottoMembers.map((m: any) => m.login).filter(Boolean));
   const allMembers = useMemo(() => {
     const members: any[] = [];
     perfTiles.forEach(t => t.members.forEach((m: any) => { if (!members.find(x => x.id === m.id)) members.push(m); }));
@@ -36,7 +36,7 @@ function TeamBarChart({ perfTiles, ottoMembers = [] }: { perfTiles: any[]; ottoM
   useEffect(() => { const t = setTimeout(() => setAnimated(true), 100); return () => clearTimeout(t); }, []);
 
   if (!allMembers.length) return (
-    <div className="h-full flex flex-col items-center justify-center text-gray-300 p-8" style={{ minHeight: 400 }}>
+    <div className="h-full flex flex-col items-center justify-center text-gray-300 p-8">
       <p className="text-sm font-medium text-gray-400">No performance data available</p>
       <p className="text-xs text-gray-300 mt-1">Upload metrics to see the team bar chart</p>
     </div>
@@ -47,12 +47,12 @@ function TeamBarChart({ perfTiles, ottoMembers = [] }: { perfTiles: any[]; ottoM
   const barColor = (s: number) => s >= 90 ? '#22c55e' : s >= 80 ? '#a855f7' : s >= 70 ? '#f59e0b' : '#ef4444';
 
   return (
-    <div className="flex flex-col" style={{ minHeight: 400 }}>
+    <div className="flex flex-col h-full">
       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
         <h3 className="text-sm font-bold text-gray-700">📊 Team Performance</h3>
         <span className="text-[10px] text-gray-400">{allMembers.length} members</span>
       </div>
-      <div className="overflow-x-auto px-4 pb-3 pt-4 bar-chart-scroll">
+      <div className="overflow-x-auto flex-1 px-4 pb-3 pt-4 bar-chart-scroll">
         <div className="flex items-end gap-3" style={{ minWidth: allMembers.length * 68 }}>
           {allMembers.map((m, i) => {
             const barH = Math.max((m.overall_score / maxScore) * MAX_BAR, 18);
@@ -210,7 +210,6 @@ export default function ManagerDashboardV2() {
                     </div>
                   );
                 })()}
-                <ShiftWeekOff initialShiftStart={profileData?.shiftStart} initialShiftEnd={profileData?.shiftEnd} initialWeekOff={profileData?.weekOff} theme="light" />
               </div>
             </div>
             <div className="shrink-0 ml-6 flex flex-col items-center">
@@ -221,7 +220,7 @@ export default function ManagerDashboardV2() {
               </div>
               <div className="mt-2 text-center">
                 {user.team_name && <p className="text-white text-xs font-semibold">{user.team_name}</p>}
-                <p className="text-indigo-300 text-[10px] capitalize mt-0.5">{getInternalTitle(user.role, user.team_name)}</p>
+                <p className="text-white text-[11px] font-semibold capitalize mt-0.5 drop-shadow-sm">{getInternalTitle(user.role, user.team_name)}</p>
               </div>
             </div>
           </div>
@@ -327,7 +326,7 @@ export default function ManagerDashboardV2() {
         )}
 
         {/* Team Bar Chart / Notification Detail */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6" style={{ minHeight: 400 }}>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6" style={{ height: 420 }}>
           {expandedTileData ? (
             <div className="h-full flex flex-col animate-middleRollUp">
               <div className={`bg-gradient-to-r ${expandedTileData.gradient} px-5 py-3 flex items-center justify-between shrink-0`}>
@@ -360,7 +359,9 @@ export default function ManagerDashboardV2() {
               )}
             </div>
           ) : (
-            <TeamBarChart perfTiles={perfTiles} ottoMembers={ottoMembers} />
+            <div className="h-full overflow-y-auto">
+              <TeamBarChart perfTiles={perfTiles} ottoMembers={ottoMembers} />
+            </div>
           )}
         </div>
 
@@ -393,7 +394,8 @@ export default function ManagerDashboardV2() {
       </div>{/* end main content */}
 
       {/* Right Sidebar — Notifications */}
-      <div className="w-[300px] shrink-0 p-4 overflow-y-auto sidebar-scroll" style={{ height: '100vh', position: 'sticky', top: 0, minWidth: 300 }}>
+      <div className="w-[300px] shrink-0 p-4" style={{ minWidth: 300, position: 'sticky', top: 0, height: '100vh', overflowY: 'auto' }}>
+        <OnlineTeamTile />
         <MemberNotificationTiles mode="sidebar" onTileExpand={(tile: any) => setExpandedTileData(tile)} />
       </div>
     </div>

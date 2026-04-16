@@ -2,13 +2,15 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone, time as dtime
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.team_member import TeamMember
 from app.models.upcoming_leave import UpcomingLeave
 from app.models.member_performance_metric import MemberPerformanceMetric
+
+IST = timezone(timedelta(hours=5, minutes=30))
 
 router = APIRouter(prefix="/api/dashboard/v2", tags=["Dashboard V2"])
 
@@ -34,7 +36,7 @@ def get_live_team_strength(db: Session, team_name: str = None):
 
 def get_otto_members(db: Session, team_name: str = None):
     today = date.today()
-    q = db.query(User.id, User.name, User.employee_id, UpcomingLeave.leave_type).join(
+    q = db.query(User.id, User.name, User.employee_id, User.login, UpcomingLeave.leave_type).join(
         UpcomingLeave, UpcomingLeave.user_id == User.id
     ).filter(
         UpcomingLeave.leave_date <= today,
@@ -44,7 +46,50 @@ def get_otto_members(db: Session, team_name: str = None):
     )
     if team_name:
         q = q.filter(User.team_name == team_name)
-    return [{"id": m.id, "name": m.name, "tm_employee_id": m.employee_id, "leave_type": m.leave_type or "Leave"} for m in q.all()]
+    return [{"id": m.id, "name": m.name, "tm_employee_id": m.employee_id, "login": m.login, "leave_type": m.leave_type or "Leave"} for m in q.all()]
+
+
+@router.get("/online-team")
+def get_online_team(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Return team members whose shift is currently running (excludes week off)."""
+    now_dt = datetime.now(IST)
+    now_ist = now_dt.time()
+    today_dow = now_dt.weekday()
+    dow_map = {6: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6}
+    today_idx = dow_map[today_dow]
+    team_filter = current_user.team_name
+
+    users = db.query(User).filter(
+        User.is_active == True, User.role == "specialist",
+        User.shift_start.isnot(None), User.shift_end.isnot(None),
+    )
+    if team_filter:
+        users = users.filter(User.team_name == team_filter)
+
+    online = []
+    for u in users.all():
+        try:
+            sh_start = datetime.strptime(u.shift_start.strip(), "%H:%M").time()
+            sh_end = datetime.strptime(u.shift_end.strip(), "%H:%M").time()
+        except (ValueError, AttributeError):
+            continue
+        # skip if today is week off
+        if u.week_off:
+            off_days = [int(d.strip()) for d in u.week_off.split(',') if d.strip().isdigit()]
+            if today_idx in off_days:
+                continue
+        # handle overnight shifts (e.g. 22:00 - 06:00)
+        if sh_start <= sh_end:
+            is_on = sh_start <= now_ist <= sh_end
+        else:
+            is_on = now_ist >= sh_start or now_ist <= sh_end
+        if is_on:
+            online.append({
+                "id": u.id, "name": u.name, "employee_id": u.employee_id,
+                "profile_picture": u.profile_picture,
+                "shift_end": u.shift_end,
+            })
+    return {"online_members": online, "count": len(online)}
 
 
 @router.get("/member")
@@ -84,6 +129,7 @@ def get_member_dashboard(db: Session = Depends(get_db), current_user: User = Dep
         "user": {
             "name": current_user.name,
             "employee_id": current_user.employee_id,
+            "login": current_user.login,
             "role": current_user.role,
             "team": current_user.team_name,
             "profile_picture": current_user.profile_picture,

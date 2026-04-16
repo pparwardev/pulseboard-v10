@@ -24,7 +24,7 @@ class User(Base):
     skill_set = Column(String(100), nullable=True)
     role = Column(String(50), nullable=False, default="specialist")  # manager or specialist only
     profile_picture = Column(String(500), nullable=True)
-    date_of_birth = Column(Date, nullable=True)
+    date_of_birth = Column(String(10), nullable=True)
     shift_start = Column(String(10), nullable=True)
     shift_end = Column(String(10), nullable=True)
     week_off = Column(String(20), nullable=True)

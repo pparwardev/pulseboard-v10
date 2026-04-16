@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "v10_secret_key"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
-    CORS_ORIGINS: str = "http://localhost:3001"
+    CORS_ORIGINS: str = "http://localhost:3001,http://127.0.0.1:3001,http://172.19.112.52:3001,*"
     DEBUG: bool = False
     UPLOAD_DIR: str = "./uploads"
 

@@ -8,6 +8,8 @@ import PendingApproval from '../components/PendingApproval';
 import AccountDeactivated from '../components/AccountDeactivated';
 import amazonIcon from '../assets/amazon-icon.png';
 import { getInternalTitle } from '../utils/roleMapping';
+import ShiftWeekOff from '../components/ShiftWeekOff';
+
 
 interface Notification {
   id: number;
@@ -35,7 +37,7 @@ const navigation = [
     roles: ['specialist'],
     subItems: [
       { name: 'Home', path: '/member-dashboard', icon: '🏠', roles: ['specialist'] },
-      { name: 'My Performance', path: '/performance', icon: '🎯', roles: ['specialist'] },
+      { name: 'My Performance', path: '/my-performance', icon: '🎯', roles: ['specialist'] },
     ]
   },
   {
@@ -75,6 +77,10 @@ export default function DashboardLayout() {
   const [unreadByType, setUnreadByType] = useState<Record<string, number>>({});
   const [profileCompletion, setProfileCompletion] = useState(100);
   const [showCompletionSuccess, setShowCompletionSuccess] = useState(false);
+  const [shiftStart, setShiftStart] = useState<string | undefined>();
+  const [shiftEnd, setShiftEnd] = useState<string | undefined>();
+  const [weekOff, setWeekOff] = useState<string | undefined>();
+
   const navigate = useNavigate();
   const location = useLocation();
   const userStr = sessionStorage.getItem('user');
@@ -87,9 +93,10 @@ export default function DashboardLayout() {
 
   const isSidebarExpanded = sidebarPinned || sidebarHovered;
 
+  const isManager = user?.role === 'manager';
   const typeToPath: Record<string, string> = {
     user_registered: '/registrations',
-    ot_leave_submitted: '/leave-calendar',
+    ot_leave_submitted: isManager ? '/team-updates' : '/ot',
     wall_post: '/wall-of-fame',
   };
 
@@ -149,6 +156,9 @@ export default function DashboardLayout() {
       if (res.data.profilePhoto) {
         setProfilePhoto(`http://localhost:8001${res.data.profilePhoto.url}`);
       }
+      setShiftStart(res.data.shift_start || undefined);
+      setShiftEnd(res.data.shift_end || undefined);
+      setWeekOff(res.data.week_off || undefined);
     } catch { /* ignore */ }
   };
 
@@ -206,7 +216,7 @@ export default function DashboardLayout() {
     setNotifications(notifications.filter(n => n.id !== notif.id));
     switch (notif.type) {
       case 'user_registered': navigate('/registrations'); break;
-      case 'ot_leave_submitted': navigate('/leave-calendar'); break;
+      case 'ot_leave_submitted': navigate(user?.role === 'manager' ? '/team-updates' : '/ot'); break;
       case 'wall_post': navigate('/wall-of-fame'); break;
       default: break;
     }
@@ -337,6 +347,13 @@ export default function DashboardLayout() {
             {user?.team_name || 'Team'} PulseBoard
           </Link>
           <div className="flex items-center gap-4">
+            <ShiftWeekOff
+              initialShiftStart={shiftStart}
+              initialShiftEnd={shiftEnd}
+              initialWeekOff={weekOff}
+              theme="dark"
+              onSave={fetchProfilePhoto}
+            />
             {/* Notification Bell */}
             <div className="relative">
               <button

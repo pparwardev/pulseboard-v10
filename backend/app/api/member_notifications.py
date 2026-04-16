@@ -16,13 +16,20 @@ def _photo(user):
 
 def _get_team_ids(db, user):
     team_name = user.team_name
-    manager_login = user.manager_login
-    if not team_name or not manager_login:
+    if not team_name:
+        return [user.id]
+    # Manager: find members whose manager_login is this user's login
+    # Member: find members who share the same manager_login
+    if user.role == 'manager':
+        lookup_login = user.login
+    else:
+        lookup_login = user.manager_login
+    if not lookup_login:
         return [user.id]
     ids = [uid for (uid,) in db.query(User.id).filter(
-        User.team_name == team_name, User.manager_login == manager_login, User.is_active == True
+        User.team_name == team_name, User.manager_login == lookup_login, User.is_active == True
     ).all()]
-    mgr = db.query(User).filter(User.login == manager_login, User.is_active == True).first()
+    mgr = db.query(User).filter(User.login == lookup_login, User.is_active == True).first()
     if mgr and mgr.id not in ids:
         ids.append(mgr.id)
     if user.id not in ids:
@@ -50,13 +57,13 @@ def get_member_notification_tiles(db: Session = Depends(get_db), current_user: U
               *_weekly_scores(db, current_user)),
         _tile("polls", "Poll Updates", "📊", "from-violet-500 via-purple-500 to-fuchsia-500", "border-violet-300", "/polls",
               *_polls(db, current_user, team_ids)),
-        _tile("ot_submitted", "OT Submitted", "⏰", "from-orange-500 via-amber-500 to-yellow-500", "border-orange-300", "/ot",
+        _tile("ot_submitted", "OT Submitted", "⏰", "from-orange-500 via-amber-500 to-yellow-500", "border-orange-300", "/team-updates" if is_manager else "/ot",
               *_ot_submitted(db, current_user, team_ids, manager, is_manager)),
         _tile("leave_calendar", "Leave Calendar", "🏖️", "from-teal-500 via-emerald-500 to-green-500", "border-teal-300", "/leave-calendar",
               *_leave_calendar(db, current_user, team_ids, manager, is_manager)),
         _tile("wall_of_fame", "Wall of Fame", "🏆", "from-yellow-500 via-amber-500 to-orange-400", "border-yellow-300", "/wall-of-fame",
               *_wall_of_fame(db, current_user, team_ids)),
-        _tile("ot_champion", "OT Champion of the Month", "🥇", "from-rose-500 via-pink-500 to-fuchsia-500", "border-rose-300", "/ot",
+        _tile("ot_champion", "OT Champion of the Month", "🥇", "from-rose-500 via-pink-500 to-fuchsia-500", "border-rose-300", "/team-updates" if is_manager else "/ot",
               *_ot_champion(db, current_user, team_ids)),
     ]
     return {"tiles": tiles}
@@ -89,9 +96,10 @@ def _ot_champion(db, current_user, team_ids):
         u_name = u.name
         members_set[u.id] = {"id": u.id, "name": u_name, "photo": _photo(u)}
         medal = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else f"#{rank}"
+        ot_nav = "/team-updates" if current_user.role == 'manager' else "/ot"
         items.append({
             "text": f"{medal} <b>{u_name}</b> — <b>{round(total, 1)} hrs</b> OT in {month_name}",
-            "time": None, "type": "ot_champion", "nav": "/ot",
+            "time": None, "type": "ot_champion", "nav": ot_nav,
             "member_name": u_name, "member_photo": _photo(u),
         })
 
@@ -213,7 +221,7 @@ def _ot_submitted(db, current_user, team_ids, manager, is_manager):
             items.append({
                 "text": f"⏰ <b>{u_name}</b> submitted OT for <b>{month_name}</b>",
                 "time": o.created_at.isoformat() if o.created_at else None,
-                "type": "ot", "nav": "/ot",
+                "type": "ot", "nav": "/team-updates",
                 "member_name": u_name, "member_photo": _photo(u) if u else None,
             })
     else:
@@ -307,10 +315,10 @@ def _wall_of_fame(db, current_user, team_ids):
         })
 
     # Birthdays today
+    today_mmdd = today.strftime('-%m-%d')
     birthday_users = db.query(User).filter(
         User.id.in_(team_ids), User.is_active == True, User.date_of_birth.isnot(None),
-        func.extract('month', User.date_of_birth) == today.month,
-        func.extract('day', User.date_of_birth) == today.day,
+        User.date_of_birth.like(f'%{today_mmdd}'),
     ).all()
 
     for u in birthday_users:

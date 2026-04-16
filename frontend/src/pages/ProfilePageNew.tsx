@@ -55,6 +55,7 @@ export default function ProfilePageNew() {
             login: user.login, email: user.email, contact: user.contact_number,
             managerName: user.manager_login, team: user.team_name,
             lastJoinDate: user.created_at?.split('T')[0],
+            total_tenure: user.total_tenure,
             country: user.marketplace, location: user.location,
             supports_marketplace: user.supports_marketplace,
             shift_start: user.shift_start, shift_end: user.shift_end, week_off: user.week_off,
@@ -106,8 +107,9 @@ export default function ProfilePageNew() {
 
   if (!profile) return <div className="flex justify-center items-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
 
-  const Field = ({ label, field, value, editable, type = 'text' }: any) => {
+  const Field = ({ label, field, value, rawValue, editable, type = 'text' }: any) => {
     const isEditable = editable && !memberId;
+    const editVal = rawValue !== undefined ? rawValue : value;
     return (
       <div className={`py-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
         <div className="flex items-center">
@@ -121,6 +123,17 @@ export default function ProfilePageNew() {
                       <option value="">Select Country</option>
                       {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
+                  ) : type === 'dob' ? (
+                    <div className="flex gap-2 flex-1">
+                      <select value={editValue.split('-')[1] || ''} onChange={(e) => setEditValue(`${e.target.value}-${editValue.split('-')[0] || ''}`.replace(/-$/, ''))} className={`flex-1 px-3 py-2 border-2 border-blue-500 rounded ${darkMode ? 'bg-gray-700 text-white' : ''}`}>
+                        <option value="">Month</option>
+                        {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m,i) => <option key={m} value={String(i+1).padStart(2,'0')}>{m}</option>)}
+                      </select>
+                      <select value={editValue.split('-')[0] || ''} onChange={(e) => setEditValue(`${e.target.value}-${editValue.split('-')[1] || ''}`.replace(/-$/, ''))} className={`w-20 px-3 py-2 border-2 border-blue-500 rounded ${darkMode ? 'bg-gray-700 text-white' : ''}`}>
+                        <option value="">Day</option>
+                        {Array.from({length:31},(_,i)=>i+1).map(d => <option key={d} value={String(d).padStart(2,'0')}>{d}</option>)}
+                      </select>
+                    </div>
                   ) : type === 'date' ? (
                     <input type="date" value={editValue} onChange={(e) => setEditValue(e.target.value)} className={`flex-1 px-3 py-2 border-2 border-blue-500 rounded ${darkMode ? 'bg-gray-700 text-white' : ''}`} autoFocus />
                   ) : field === 'contact_number' ? (
@@ -137,7 +150,7 @@ export default function ProfilePageNew() {
               <>
                 <span className={`font-medium ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>{value || <span className={darkMode ? 'text-gray-500' : 'text-gray-400'}>Not set</span>}</span>
                 {isEditable ? (
-                  <button onClick={() => handleEdit(field, value)} className={`ml-2 ${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-400 hover:text-blue-600'}`}>✏️</button>
+                  <button onClick={() => handleEdit(field, editVal)} className={`ml-2 ${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-400 hover:text-blue-600'}`}>✏️</button>
                 ) : (
                   <span className="text-gray-300 ml-2">🔒</span>
                 )}
@@ -205,8 +218,9 @@ export default function ProfilePageNew() {
           <Field label="Contact" field="contact_number" value={profile.contact_number || profile.contact} editable={true} />
           <Field label="Manager Login ID" field="manager_login" value={profile.manager_login || profile.managerName} editable={false} />
           <Field label="Team" field="team_name" value={profile.team_name || profile.team} editable={false} />
-          <Field label="Date of Birth" field="date_of_birth" value={profile.date_of_birth} editable={true} type="date" />
+          <Field label="Date of Birth" field="date_of_birth" value={profile.date_of_birth ? (() => { const [d,m] = profile.date_of_birth.split('-'); const mn = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)] || m; return `${d} ${mn}`; })() : null} rawValue={profile.date_of_birth} editable={true} type="dob" />
           <Field label="Date of Joining" field="created_at" value={profile.created_at || profile.lastJoinDate} editable={false} />
+          <Field label="Total Tenure" field="total_tenure" value={profile.total_tenure} editable={false} />
           <Field label="Country" field="marketplace" value={profile.marketplace || profile.country} editable={true} />
           <Field label="Location" field="location" value={profile.location} editable={true} />
           <Field label="Supports Marketplace" field="supports_marketplace" value={profile.supports_marketplace} editable={true} />

@@ -26,7 +26,11 @@ export default function WMQYTimelineFilter({
 }: WMQYTimelineFilterProps) {
   const [period, setPeriod] = useState(defaultPeriod);
   const [year, setYear] = useState(defaultYear);
-  const [subFilter, setSubFilter] = useState(getCurrentWeek());
+  const [subFilter, setSubFilter] = useState(() => {
+    if (defaultPeriod === 'M') return new Date().getMonth() + 1;
+    if (defaultPeriod === 'Q') return Math.ceil((new Date().getMonth() + 1) / 3);
+    return getCurrentWeek();
+  });
 
   useEffect(() => {
     if (selectedPeriod === 'weekly' && !selectedSubfilter) onSubfilterChange?.(getCurrentWeek());

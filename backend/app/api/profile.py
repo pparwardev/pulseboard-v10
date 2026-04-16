@@ -21,7 +21,7 @@ def get_profile(db: Session = Depends(get_db), current_user: User = Depends(get_
         "marketplace": current_user.marketplace, "contact_number": current_user.contact_number,
         "team_name": current_user.team_name, "manager_login": current_user.manager_login,
         "shift_start": current_user.shift_start, "shift_end": current_user.shift_end,
-        "week_off": current_user.week_off, "date_of_birth": str(current_user.date_of_birth) if current_user.date_of_birth else None,
+        "week_off": current_user.week_off, "date_of_birth": current_user.date_of_birth,
         "location": current_user.location, "skill_set": current_user.skill_set,
         "supports_marketplace": current_user.supports_marketplace,
         "profile_picture": current_user.profile_picture,
