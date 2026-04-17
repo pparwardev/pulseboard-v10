@@ -165,7 +165,8 @@ def get_dashboard(week: int = None, db: Session = Depends(get_db), current_user:
                 member_metrics.append({"code": c.metric_code, "name": c.metric_name, "score": perf.normalized_score, "value": perf.metric_value})
 
         if member_metrics:
-            overall = sum(m["score"] * next(c.weight for c in configs if c.metric_code == m["code"]) for m in member_metrics) / total_weight
+            available_weight = sum(next(c.weight for c in configs if c.metric_code == m["code"]) for m in member_metrics)
+            overall = sum(m["score"] * next(c.weight for c in configs if c.metric_code == m["code"]) for m in member_metrics) / available_weight if available_weight > 0 else 0
             prev_mp = [p for p in prev_data if p.member_id == member.id]
             metric_trends = {}
             for m in member_metrics:
@@ -173,7 +174,8 @@ def get_dashboard(week: int = None, db: Session = Depends(get_db), current_user:
                 metric_trends[m["code"]] = round(m["score"] - pp.normalized_score, 2) if pp else None
 
             prev_metrics_list = [{"code": c.metric_code, "score": next((p.normalized_score for p in prev_mp if p.metric_code == c.metric_code), 0)} for c in configs if any(p.metric_code == c.metric_code for p in prev_mp)]
-            prev_overall = sum(m["score"] * next(c.weight for c in configs if c.metric_code == m["code"]) for m in prev_metrics_list) / total_weight if prev_metrics_list else None
+            prev_available_weight = sum(next(c.weight for c in configs if c.metric_code == m["code"]) for m in prev_metrics_list) if prev_metrics_list else 0
+            prev_overall = sum(m["score"] * next(c.weight for c in configs if c.metric_code == m["code"]) for m in prev_metrics_list) / prev_available_weight if prev_available_weight > 0 else None
             score_trend = round(overall - prev_overall, 2) if prev_overall else None
 
             photo = member.photo_url or user_photos.get(member.user_id)
