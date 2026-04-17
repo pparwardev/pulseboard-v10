@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface FileItem {
   id: number;
@@ -32,6 +37,11 @@ export default function FileManagerPage() {
   const ROWS_PER_PAGE = 100;
   const navigate = useNavigate();
   const [processResult, setProcessResult] = useState<any>(null);
+  const [missedResult, setMissedResult] = useState<any>(null);
+  const [deepDiveResult, setDeepDiveResult] = useState<any>(null);
+  const [pdfUrl, setPdfUrl] = useState<string>('');
+  const [pdfZoom, setPdfZoom] = useState<number>(1.0);
+  const [publishedFiles, setPublishedFiles] = useState<any[]>([]);
 
   const categories = [
     { name: 'Documents', icon: '📄', color: 'bg-blue-100 text-blue-600' },
@@ -45,6 +55,7 @@ export default function FileManagerPage() {
   useEffect(() => {
     loadFiles();
     loadMetrics();
+    loadPublishedFiles();
   }, []);
 
   const loadMetrics = async () => {
@@ -65,6 +76,15 @@ export default function FileManagerPage() {
       setFiles(response.data);
     } catch (error) {
       console.error('Failed to load files:', error);
+    }
+  };
+
+  const loadPublishedFiles = async () => {
+    try {
+      const response = await api.get('/api/file-manager/published-files');
+      setPublishedFiles(response.data);
+    } catch (error) {
+      console.error('Failed to load published files:', error);
     }
   };
 
@@ -168,23 +188,32 @@ export default function FileManagerPage() {
     
     setPreviewFile(file);
     setProcessResult(null);
+    setMissedResult(null);
+    setDeepDiveResult(null);
     setExcelSheets({});
     setActiveSheet('');
     setPageNumber(1);
     setImageLoaded(false);
     setExcelPage(0);
-    
-    if (file.type.includes('sheet') || file.type.includes('excel') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.csv')) {
-      // Fetch file from backend for Excel
+    setPdfUrl('');
+    setPdfZoom(1.0);
+
+    const isExcel = file.type.includes('sheet') || file.type.includes('excel') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.csv');
+    const isPdf = file.type.includes('pdf') || file.name.endsWith('.pdf');
+
+    if (isExcel || isPdf) {
       try {
         const token = sessionStorage.getItem('token');
         const response = await fetch(`http://localhost:8001${file.url}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const blob = await response.blob();
-        const fileUrl = URL.createObjectURL(blob);
-        const fileWithUrl = { ...file, url: fileUrl };
-        loadExcelFile(fileWithUrl);
+        const blobUrl = URL.createObjectURL(blob);
+        if (isExcel) {
+          loadExcelFile({ ...file, url: blobUrl });
+        } else {
+          setPdfUrl(blobUrl);
+        }
       } catch (err) {
         toast.error('Failed to load file');
       }
@@ -306,182 +335,142 @@ export default function FileManagerPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-6 items-start">
-        {/* Left Sidebar - Upload Box */}
-        <div className="col-span-3 space-y-6">
-          <div className="bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl p-6 text-white shadow-xl">
-            <div className="text-center mb-4">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                <span className="text-3xl">📁</span>
-              </div>
-              <h3 className="font-bold text-lg mb-2">
-                {selectedMetric ? `Upload ${selectedMetric} File` : 'Select Metric First'}
-              </h3>
-              <p className="text-sm text-white/80">
-                {selectedMetric ? 'Drag & drop or click to upload' : 'Choose a metric category below'}
-              </p>
+      <div className="grid grid-cols-4 gap-4 items-start">
+        {/* 1. Select Metric Category */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border flex flex-col" style={{ height: '400px' }}>
+          <h2 className="font-bold text-gray-900 text-sm mb-3">Select Metric Category</h2>
+          {metrics.length === 0 ? (
+            <div className="text-center py-8 text-gray-400 flex-1 flex flex-col items-center justify-center">
+              <div className="text-3xl mb-2">⚙️</div>
+              <p className="text-xs mb-2">No metrics configured</p>
+              <button onClick={() => navigate('/metrics-config')} className="text-xs text-blue-600 hover:underline">Configure Metrics →</button>
             </div>
-
-            {/* Week Selection Dropdown */}
-            <div className="mb-4">
-              <label className="text-xs text-white/80 mb-1 block">Select Week</label>
-              <select
-                value={selectedWeek}
-                onChange={(e) => setSelectedWeek(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg text-sm bg-white text-gray-900 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50"
-              >
-                <option value="" className="text-gray-900">-- Select Week --</option>
-                {getWeekOptions().map(w => (
-                  <option key={w} value={w} className="text-gray-900">{w}</option>
-                ))}
-              </select>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 overflow-y-auto flex-1">
+              {metrics.map((metric) => (
+                <button
+                  key={metric.id}
+                  onClick={() => { setSelectedMetric(metric.metric_code); setPreviewFile(null); setProcessResult(null); }}
+                  className={`p-3 rounded-xl transition hover:scale-105 text-center ${
+                    selectedMetric === metric.metric_code
+                      ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white ring-2 ring-purple-600'
+                      : 'bg-gradient-to-br from-purple-100 to-blue-100 text-purple-700'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">{metric.metric_code === 'Missed' ? '📵' : '📊'}</div>
+                  <div className="font-semibold text-xs">{metric.metric_name}</div>
+                  <div className="text-[10px] opacity-75 mt-0.5">{metric.metric_code} • {files.filter(f => f.metric_code === metric.metric_code).length} files</div>
+                </button>
+              ))}
             </div>
-
-            <div
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-xl p-6 text-center transition ${
-                dragActive ? 'border-white bg-white/20' : 'border-white/40'
-              }`}
-            >
-              <input
-                type="file"
-                id="fileInput"
-                className="hidden"
-                onChange={handleFileInput}
-                accept=".xlsx,.xls,.csv,.xlsm,.xlsb,.pdf,.doc,.docx"
-                multiple
-              />
-              <label htmlFor="fileInput" className="cursor-pointer">
-                <div className="text-4xl mb-2">☁️</div>
-                <p className="text-sm">Drop files here</p>
-              </label>
-            </div>
-
-            <button
-              onClick={() => document.getElementById('fileInput')?.click()}
-              disabled={loading || !selectedMetric || !selectedWeek}
-              className="w-full mt-4 bg-white text-purple-600 py-3 rounded-xl font-semibold hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Uploading...' : !selectedMetric ? 'Select Metric First' : !selectedWeek ? 'Select Week First' : 'Upload'}
-            </button>
-          </div>
+          )}
         </div>
 
-        {/* Main Content */}
-        <div className="col-span-6 space-y-6">
-          {/* Metric Categories */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-gray-900">Select Metric Category</h2>
+        {/* 2. Upload Box */}
+        <div className="bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl p-4 text-white shadow-xl flex flex-col" style={{ height: '400px' }}>
+          <div className="text-center mb-3">
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2">
+              <span className="text-xl">📁</span>
             </div>
-            {metrics.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
-                <div className="text-4xl mb-2">⚙️</div>
-                <p className="text-sm mb-2">No metrics configured</p>
-                <button
-                  onClick={() => navigate('/metrics-config')}
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  Configure Metrics →
-                </button>
+            <h3 className="font-bold text-sm">
+              {selectedMetric ? `Upload ${selectedMetric}` : 'Select Metric'}
+            </h3>
+          </div>
+          <div className="mb-2">
+            <select
+              value={selectedWeek}
+              onChange={(e) => setSelectedWeek(e.target.value)}
+              className="w-full px-2 py-1.5 rounded-lg text-xs bg-white text-gray-900 focus:outline-none"
+            >
+              <option value="">-- Select Week --</option>
+              {getWeekOptions().map(w => (<option key={w} value={w}>{w}</option>))}
+            </select>
+          </div>
+          <div
+            onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-xl p-4 text-center transition flex-1 flex flex-col items-center justify-center ${
+              dragActive ? 'border-white bg-white/20' : 'border-white/40'
+            }`}
+          >
+            <input type="file" id="fileInput" className="hidden" onChange={handleFileInput} accept=".xlsx,.xls,.csv,.xlsm,.xlsb,.pdf,.doc,.docx" multiple />
+            <label htmlFor="fileInput" className="cursor-pointer">
+              <div className="text-3xl mb-1">☁️</div>
+              <p className="text-xs">Drop files here</p>
+            </label>
+          </div>
+          <button
+            onClick={() => document.getElementById('fileInput')?.click()}
+            disabled={loading || !selectedMetric || !selectedWeek}
+            className="w-full mt-3 bg-white text-purple-600 py-2 rounded-xl font-semibold text-sm hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Uploading...' : !selectedMetric ? 'Select Metric' : !selectedWeek ? 'Select Week' : 'Upload'}
+          </button>
+        </div>
+
+        {/* 3. All Files */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border flex flex-col" style={{ height: '400px' }}>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-bold text-gray-900 text-sm">All Files</h2>
+            <button onClick={() => { setSelectedMetric(''); setFilterWeek(''); }} className="text-[10px] text-blue-600 hover:underline">See all</button>
+          </div>
+          <select
+            value={filterWeek}
+            onChange={(e) => setFilterWeek(e.target.value)}
+            className="w-full px-2 py-1 rounded-lg text-xs bg-gray-50 border border-gray-200 focus:outline-none mb-2"
+          >
+            <option value="">All Weeks</option>
+            {allWeekLabels.map(w => (<option key={w} value={w}>{w}</option>))}
+          </select>
+          <div className="space-y-1.5 overflow-y-auto flex-1">
+            {filteredFiles.length === 0 ? (
+              <div className="text-center py-6 text-gray-400">
+                <div className="text-3xl mb-1">📂</div>
+                <p className="text-xs">No files yet</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
-                {metrics.map((metric) => (
+              filteredFiles.map((file) => (
+                <div key={file.id} className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded-lg transition group">
+                  <div className="w-7 h-7 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center text-sm flex-shrink-0">
+                    {getFileIcon(file.type, file.name)}
+                  </div>
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handlePreview(file)}>
+                    <p className="font-medium text-gray-900 truncate text-[11px] hover:text-blue-600">{file.name}</p>
+                    <p className="text-[10px] text-gray-500">{formatFileSize(file.size)}{file.week_label ? ` • ${file.week_label}` : ''}</p>
+                  </div>
                   <button
-                    key={metric.id}
-                    onClick={() => {
-                      setSelectedMetric(metric.metric_code);
-                      setPreviewFile(null);
-                      setProcessResult(null);
-                    }}
-                    className={`p-4 rounded-xl transition hover:scale-105 ${
-                      selectedMetric === metric.metric_code
-                        ? 'bg-gradient-to-br from-purple-500 to-blue-500 text-white ring-2 ring-purple-600'
-                        : 'bg-gradient-to-br from-purple-100 to-blue-100 text-purple-700'
-                    }`}
-                  >
-                    <div className="text-3xl mb-2">📊</div>
-                    <div className="font-semibold">{metric.metric_name}</div>
-                    <div className="text-xs opacity-75 mt-1">{metric.metric_code}</div>
-                    <div className="text-xs opacity-75">
-                      {files.filter(f => f.metric_code === metric.metric_code).length} files
-                    </div>
-                  </button>
-                ))}
-              </div>
+                    onClick={(e) => { e.stopPropagation(); deleteFile(file.id); }}
+                    className="px-1.5 py-0.5 text-[10px] bg-red-50 text-red-600 rounded hover:bg-red-100 opacity-0 group-hover:opacity-100 transition"
+                  >🗑</button>
+                </div>
+              ))
             )}
           </div>
-
         </div>
 
-        {/* Right Sidebar - All Files */}
-        <div className="col-span-3">
-          <div className="bg-white rounded-2xl p-4 shadow-sm border flex flex-col" style={{ height: '488px' }}>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-gray-900 text-sm">All Files</h2>
-              <button onClick={() => { setSelectedMetric(''); setFilterWeek(''); }} className="text-xs text-blue-600 hover:underline">
-                See all
-              </button>
-            </div>
-
-            {/* Week Filter */}
-            <div className="mb-3">
-              <select
-                value={filterWeek}
-                onChange={(e) => setFilterWeek(e.target.value)}
-                className="w-full px-2 py-1.5 rounded-lg text-xs bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-300"
-              >
-                <option value="">All Weeks</option>
-                {allWeekLabels.map(w => (
-                  <option key={w} value={w}>{w}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2 overflow-y-auto flex-1">
-              {filteredFiles.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  <div className="text-4xl mb-2">📂</div>
-                  <p className="text-xs">No files uploaded yet</p>
-                </div>
-              ) : (
-                filteredFiles.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg transition group"
-                  >
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center text-lg flex-shrink-0">
-                      {getFileIcon(file.type, file.name)}
-                    </div>
-                    <div 
-                      className="flex-1 min-w-0 cursor-pointer"
-                      onClick={() => handlePreview(file)}
-                    >
-                      <p className="font-medium text-gray-900 truncate text-xs hover:text-blue-600">{file.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {formatFileSize(file.size)}{file.week_label ? ` • ${file.week_label}` : ''}
-                      </p>
-                    </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteFile(file.id);
-                        }}
-                        className="px-2 py-1 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition"
-                        title="Delete"
-                      >
-                        🗑
-                      </button>
-                    </div>
+        {/* 4. Published Files */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border flex flex-col" style={{ height: '400px' }}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-gray-900 text-sm">Published Files</h2>
+            <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">{publishedFiles.length}</span>
+          </div>
+          <div className="space-y-2 overflow-y-auto flex-1">
+            {publishedFiles.length === 0 ? (
+              <div className="text-center py-6 text-gray-400">
+                <div className="text-3xl mb-1">✅</div>
+                <p className="text-xs">No files published yet</p>
+              </div>
+            ) : (
+              publishedFiles.map((pf: any, i: number) => (
+                <div key={i} className="p-2.5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                  <p className="font-medium text-gray-900 truncate text-[11px]">{pf.name}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-medium">{pf.metric_code}</span>
+                    <span className="text-[10px] text-gray-500">{pf.weeks_published?.join(', ')}</span>
                   </div>
-                ))
-              )}
-            </div>
+                  {pf.uploaded_at && <p className="text-[10px] text-gray-400 mt-1">{new Date(pf.uploaded_at).toLocaleDateString()}</p>}
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -502,26 +491,83 @@ export default function FileManagerPage() {
                   >
                     Download
                   </a>
-                  <button
-                    onClick={() => processFile(previewFile)}
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {loading && (
-                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                      </svg>
-                    )}
-                    {loading ? 'Processing...' : `Process Team Level ${previewFile.metric_code || 'File'}`}
-                  </button>
-                  <button
-                    onClick={() => toast('Case Level processing coming soon!')}
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-                  >
-                    {`Process Case Level ${previewFile.metric_code || 'File'}`}
-                  </button>
+                  {previewFile.metric_code === 'Missed' ? (
+                    <>
+                    <button
+                      onClick={async () => {
+                        try {
+                          setLoading(true);
+                          setMissedResult(null);
+                          const res = await api.post(`/api/file-manager/process-missed/${previewFile.id}`);
+                          setMissedResult(res.data);
+                          toast.success('Missed contacts processed!');
+                        } catch (err: any) {
+                          toast.error(err.response?.data?.detail || 'Failed to process');
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                      className="px-4 py-2 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 transition disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {loading && (
+                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                      )}
+                      {loading ? 'Processing...' : 'Process Team Level Missed'}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          setLoading(true);
+                          setDeepDiveResult(null);
+                          const res = await api.post(`/api/file-manager/process-missed-deepdive/${previewFile.id}`);
+                          setDeepDiveResult(res.data);
+                          toast.success('Deep dive processed!');
+                        } catch (err: any) {
+                          toast.error(err.response?.data?.detail || 'Failed to process');
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                      className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {loading && (
+                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                      )}
+                      {loading ? 'Processing...' : 'Process Deep Dive Missed Contact'}
+                    </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => processFile(previewFile)}
+                        disabled={loading}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {loading && (
+                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                          </svg>
+                        )}
+                        {loading ? 'Processing...' : `Process Team Level ${previewFile.metric_code || 'File'}`}
+                      </button>
+                      <button
+                        onClick={() => toast('Case Level processing coming soon!')}
+                        disabled={loading}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                      >
+                        {`Process Case Level ${previewFile.metric_code || 'File'}`}
+                      </button>
+                    </>
+                  )}
                   <button
                     onClick={() => setPreviewFile(null)}
                     className="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition"
@@ -590,44 +636,72 @@ export default function FileManagerPage() {
 
                 {(previewFile.type.includes('pdf') || previewFile.name.endsWith('.pdf')) && (
                   <div className="bg-gray-100 p-4">
-                    <div className="flex items-center justify-center gap-4 mb-4">
-                      <button
-                        onClick={() => setPageNumber(Math.max(1, pageNumber - 1))}
-                        disabled={pageNumber <= 1}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
-                      >
-                        Previous
-                      </button>
-                      <span className="text-sm font-medium">
-                        Page {pageNumber} of {numPages}
-                      </span>
-                      <button
-                        onClick={() => setPageNumber(Math.min(numPages, pageNumber + 1))}
-                        disabled={pageNumber >= numPages}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
-                      >
-                        Next
-                      </button>
-                    </div>
-                    <div className="flex justify-center">
-                      <Document
-                        file={{
-                          url: `http://localhost:8001${previewFile.url}`,
-                          httpHeaders: {
-                            'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-                          }
-                        }}
-                        onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-                        loading={<div className="p-12 text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div></div>}
-                      >
-                        <Page 
-                          pageNumber={pageNumber} 
-                          width={Math.min(800, window.innerWidth - 100)}
-                          renderTextLayer={false}
-                          renderAnnotationLayer={false}
-                        />
-                      </Document>
-                    </div>
+                    {pdfUrl ? (
+                      <>
+                        <div className="flex items-center justify-center gap-3 mb-4 flex-wrap">
+                          <button
+                            onClick={() => setPageNumber(Math.max(1, pageNumber - 1))}
+                            disabled={pageNumber <= 1}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-sm font-medium">
+                            Page {pageNumber} of {numPages}
+                          </span>
+                          <button
+                            onClick={() => setPageNumber(Math.min(numPages, pageNumber + 1))}
+                            disabled={pageNumber >= numPages}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+                          >
+                            Next
+                          </button>
+                          <div className="w-px h-6 bg-gray-300 mx-1" />
+                          <button
+                            onClick={() => setPdfZoom(z => Math.max(0.25, z - 0.25))}
+                            disabled={pdfZoom <= 0.25}
+                            className="px-3 py-2 bg-gray-700 text-white rounded-lg disabled:opacity-50 text-sm"
+                            title="Zoom Out"
+                          >
+                            🔍−
+                          </button>
+                          <span className="text-sm font-medium min-w-[4rem] text-center">
+                            {Math.round(pdfZoom * 100)}%
+                          </span>
+                          <button
+                            onClick={() => setPdfZoom(z => Math.min(3, z + 0.25))}
+                            disabled={pdfZoom >= 3}
+                            className="px-3 py-2 bg-gray-700 text-white rounded-lg disabled:opacity-50 text-sm"
+                            title="Zoom In"
+                          >
+                            🔍+
+                          </button>
+                          <button
+                            onClick={() => setPdfZoom(1.0)}
+                            className="px-3 py-2 bg-gray-500 text-white rounded-lg text-sm"
+                            title="Reset Zoom"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                        <div className="flex justify-center overflow-auto">
+                          <Document
+                            file={pdfUrl}
+                            onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                            loading={<div className="p-12 text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div></div>}
+                          >
+                            <Page
+                              pageNumber={pageNumber}
+                              width={Math.min(800, window.innerWidth - 100) * pdfZoom}
+                            />
+                          </Document>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="p-12 text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -798,19 +872,195 @@ export default function FileManagerPage() {
                       </table>
                     </div>
                   )}
+
                 </div>
               )}
 
-              {processResult && (
-                <div className="mt-4 flex justify-end">
-                  <button
-                    onClick={() => toast('Publish feature coming soon!')}
-                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition shadow-lg flex items-center gap-2"
-                  >
-                    <span>🚀</span> Publish Processed Data
-                  </button>
+              {/* Missed Result */}
+              {missedResult && (
+                <div className="mt-4 border-2 border-orange-200 rounded-xl overflow-hidden">
+                  <div className="bg-orange-50 px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">📵</span>
+                      <span className="font-semibold text-orange-800">{missedResult.message}</span>
+                      {missedResult.week_label && <span className="text-sm text-orange-600 ml-2">({missedResult.week_label})</span>}
+                    </div>
+                    <button onClick={() => setMissedResult(null)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 p-4 bg-white border-b">
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold text-gray-700">{missedResult.total_specialists}</div>
+                      <div className="text-xs text-gray-600">Specialists</div>
+                    </div>
+                    <div className="text-center p-3 bg-orange-50 rounded-lg">
+                      <div className="text-2xl font-bold text-orange-700">{missedResult.total_records}</div>
+                      <div className="text-xs text-orange-600">Total Records</div>
+                    </div>
+                  </div>
+
+                  {missedResult.specialist_data?.length > 0 && (
+                    <div className="overflow-auto" style={{ maxHeight: '500px' }}>
+                      <table className="w-full border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-gray-100 sticky top-0 z-10">
+                            <th className="border border-gray-200 px-2 py-2 text-left">Week</th>
+                            <th className="border border-gray-200 px-2 py-2 text-left">Associate</th>
+                            <th className="border border-gray-200 px-2 py-2 text-left">Marketplace</th>
+                            <th className="border border-gray-200 px-2 py-2 text-left">Site</th>
+                            <th className="border border-gray-200 px-2 py-2 text-center">Offered</th>
+                            <th className="border border-gray-200 px-2 py-2 text-center">Missed</th>
+                            <th className="border border-gray-200 px-2 py-2 text-center">Missed%</th>
+                            <th className="border border-gray-200 px-2 py-2 text-center">Chat Off</th>
+                            <th className="border border-gray-200 px-2 py-2 text-center">Chat Miss</th>
+                            <th className="border border-gray-200 px-2 py-2 text-center">Chat%</th>
+                            <th className="border border-gray-200 px-2 py-2 text-center">Voice Off</th>
+                            <th className="border border-gray-200 px-2 py-2 text-center">Voice Miss</th>
+                            <th className="border border-gray-200 px-2 py-2 text-center">Voice%</th>
+                            <th className="border border-gray-200 px-2 py-2 text-center">WI Off</th>
+                            <th className="border border-gray-200 px-2 py-2 text-center">WI Miss</th>
+                            <th className="border border-gray-200 px-2 py-2 text-center">WI%</th>
+                            <th className="border border-gray-200 px-2 py-2 text-center">Rate Live</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {missedResult.specialist_data.map((row: any, i: number) => (
+                            <tr key={i} className={`hover:bg-gray-50 ${row.overall_missed_pct > 0 ? '' : 'opacity-70'}`}>
+                              <td className="border border-gray-200 px-2 py-1.5">{row.week}</td>
+                              <td className="border border-gray-200 px-2 py-1.5 font-medium">{row.name || row.login}</td>
+                              <td className="border border-gray-200 px-2 py-1.5">{row.marketplace || '-'}</td>
+                              <td className="border border-gray-200 px-2 py-1.5">{row.site}</td>
+                              <td className="border border-gray-200 px-2 py-1.5 text-center">{row.overall_offered}</td>
+                              <td className={`border border-gray-200 px-2 py-1.5 text-center font-medium ${row.overall_missed > 0 ? 'text-red-600 bg-red-50' : ''}`}>{row.overall_missed}</td>
+                              <td className={`border border-gray-200 px-2 py-1.5 text-center font-bold ${row.overall_missed_pct > 2 ? 'text-red-600 bg-red-50' : row.overall_missed_pct > 0 ? 'text-yellow-600 bg-yellow-50' : 'text-green-600'}`}>{row.overall_missed_pct}%</td>
+                              <td className="border border-gray-200 px-2 py-1.5 text-center">{row.chat_offered}</td>
+                              <td className={`border border-gray-200 px-2 py-1.5 text-center ${row.chat_missed > 0 ? 'text-purple-600' : ''}`}>{row.chat_missed}</td>
+                              <td className="border border-gray-200 px-2 py-1.5 text-center">{row.chat_missed_pct}%</td>
+                              <td className="border border-gray-200 px-2 py-1.5 text-center">{row.voice_offered}</td>
+                              <td className={`border border-gray-200 px-2 py-1.5 text-center ${row.voice_missed > 0 ? 'text-blue-600' : ''}`}>{row.voice_missed}</td>
+                              <td className="border border-gray-200 px-2 py-1.5 text-center">{row.voice_missed_pct}%</td>
+                              <td className="border border-gray-200 px-2 py-1.5 text-center">{row.wi_offered}</td>
+                              <td className={`border border-gray-200 px-2 py-1.5 text-center ${row.wi_missed > 0 ? 'text-yellow-600' : ''}`}>{row.wi_missed}</td>
+                              <td className="border border-gray-200 px-2 py-1.5 text-center">{row.wi_missed_pct}%</td>
+                              <td className={`border border-gray-200 px-2 py-1.5 text-center font-bold ${row.missed_contact_rate_live > 2 ? 'text-red-600' : row.missed_contact_rate_live > 0 ? 'text-yellow-600' : 'text-green-600'}`}>{row.missed_contact_rate_live}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end p-4 bg-white border-t">
+                    <button
+                      onClick={async () => {
+                        if (!previewFile) return;
+                        try {
+                          setLoading(true);
+                          const res = await api.post(`/api/file-manager/publish-missed/${previewFile.id}`);
+                          toast.success(res.data.message);
+                          loadPublishedFiles();
+                          setTimeout(() => navigate(`/published-metric/Missed`), 1500);
+                        } catch (err: any) {
+                          toast.error(err.response?.data?.detail || 'Failed to publish');
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                      className="px-5 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg font-semibold hover:from-orange-700 hover:to-amber-700 transition shadow flex items-center gap-2 text-sm disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                      ) : (
+                        <span>🚀</span>
+                      )}
+                      {loading ? 'Publishing...' : 'Publish Team Level Missed'}
+                    </button>
+                  </div>
                 </div>
               )}
+
+              {/* Deep Dive Result */}
+              {deepDiveResult && (
+                <div className="mt-4 border-2 border-indigo-200 rounded-xl overflow-hidden">
+                  <div className="bg-indigo-50 px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🔍</span>
+                      <span className="font-semibold text-indigo-800">{deepDiveResult.message}</span>
+                    </div>
+                    <button onClick={() => setDeepDiveResult(null)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 p-4 bg-white border-b">
+                    <div className="text-center p-3 bg-indigo-50 rounded-lg">
+                      <div className="text-2xl font-bold text-indigo-700">{deepDiveResult.total_records}</div>
+                      <div className="text-xs text-indigo-600">Total Work Items</div>
+                    </div>
+                    <div className="text-center p-3 bg-orange-50 rounded-lg">
+                      <div className="text-2xl font-bold text-orange-700">{deepDiveResult.total_specialists_impacted}</div>
+                      <div className="text-xs text-orange-600">Specialists Impacted</div>
+                    </div>
+                  </div>
+
+                  {/* Specialist Summary */}
+                  {deepDiveResult.specialist_summary?.length > 0 && (
+                    <div className="px-4 py-3 bg-gray-50 border-b">
+                      <h3 className="font-semibold text-gray-700 text-sm mb-2">Specialist Summary</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {deepDiveResult.specialist_summary.map((s: any, i: number) => (
+                          <span key={i} className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            s.total_incidents >= 3 ? 'bg-red-100 text-red-700' :
+                            s.total_incidents >= 1 ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-green-100 text-green-700'
+                          }`}>
+                            {s.name} — {s.total_incidents} incident{s.total_incidents !== 1 ? 's' : ''} (W{s.weeks.join(', W')})
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Deep Dive Detail Table */}
+                  {deepDiveResult.deep_dive_data?.length > 0 && (
+                    <div className="overflow-auto" style={{ maxHeight: '400px' }}>
+                      <table className="w-full border-collapse text-sm">
+                        <thead>
+                          <tr className="bg-gray-100 sticky top-0">
+                            <th className="border border-gray-200 px-3 py-2 text-left">#</th>
+                            <th className="border border-gray-200 px-3 py-2 text-center">Week</th>
+                            <th className="border border-gray-200 px-3 py-2 text-left">Specialist</th>
+                            <th className="border border-gray-200 px-3 py-2 text-left">Missed Timestamp</th>
+                            <th className="border border-gray-200 px-3 py-2 text-left">Site</th>
+                            <th className="border border-gray-200 px-3 py-2 text-left">Attribute-Queue</th>
+                            <th className="border border-gray-200 px-3 py-2 text-left">Workitem</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {deepDiveResult.deep_dive_data.map((row: any, i: number) => (
+                            <tr key={i} className="hover:bg-gray-50">
+                              <td className="border border-gray-200 px-3 py-2 text-gray-500">{i + 1}</td>
+                              <td className="border border-gray-200 px-3 py-2 text-center">
+                                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">W{row.week_no}</span>
+                              </td>
+                              <td className="border border-gray-200 px-3 py-2 font-medium">{row.name}</td>
+                              <td className="border border-gray-200 px-3 py-2 text-gray-600">{row.missed_timestamp}</td>
+                              <td className="border border-gray-200 px-3 py-2">{row.site}</td>
+                              <td className="border border-gray-200 px-3 py-2 text-xs">{row.attribute_queue}</td>
+                              <td className="border border-gray-200 px-3 py-2 text-xs font-mono">{row.workitem}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                </div>
+              )}
+
+
             </div>
           )}
         </div>

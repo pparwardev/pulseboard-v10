@@ -320,9 +320,24 @@ export default function PublishedMetricPage() {
                   {data.goal_value && <th className="px-4 py-3 text-center">Goal</th>}
                   {data.goal_value && <th className="px-4 py-3 text-center">Variance</th>}
                   <th className="px-4 py-3 text-center">Score</th>
-                  {/* Mini sparkline from trend */}
                   {trend && trend.member_trends.length > 0 && <th className="px-4 py-3 text-center">Trend</th>}
                   <th className="px-4 py-3 text-center">Status</th>
+                  {data.metric_code === 'Missed' && <>
+                    <th className="px-3 py-3 text-center">Site</th>
+                    <th className="px-3 py-3 text-center">Offered</th>
+                    <th className="px-3 py-3 text-center">Missed</th>
+                    <th className="px-3 py-3 text-center">Missed%</th>
+                    <th className="px-3 py-3 text-center">Chat Off</th>
+                    <th className="px-3 py-3 text-center">Chat Miss</th>
+                    <th className="px-3 py-3 text-center">Chat%</th>
+                    <th className="px-3 py-3 text-center">Voice Off</th>
+                    <th className="px-3 py-3 text-center">Voice Miss</th>
+                    <th className="px-3 py-3 text-center">Voice%</th>
+                    <th className="px-3 py-3 text-center">WI Off</th>
+                    <th className="px-3 py-3 text-center">WI Miss</th>
+                    <th className="px-3 py-3 text-center">WI%</th>
+                    <th className="px-3 py-3 text-center">Rate Live</th>
+                  </>}
                 </tr>
               </thead>
               <tbody>
@@ -385,6 +400,22 @@ export default function PublishedMetricPage() {
                           {m.normalized_score >= 90 ? '⭐ Excellent' : m.normalized_score >= 80 ? '⚡ Strong' : '⚠️ Need Attention'}
                         </span>
                       </td>
+                      {data.metric_code === 'Missed' && <>
+                        <td className="px-3 py-3 text-center text-xs">{m.raw_data?.site || '-'}</td>
+                        <td className="px-3 py-3 text-center text-xs">{m.raw_data?.overall_offered ?? '-'}</td>
+                        <td className={`px-3 py-3 text-center text-xs font-medium ${(m.raw_data?.overall_missed || 0) > 0 ? 'text-red-600' : ''}`}>{m.raw_data?.overall_missed ?? 0}</td>
+                        <td className={`px-3 py-3 text-center text-xs font-bold ${(m.raw_data?.overall_missed_pct || 0) > 2 ? 'text-red-600' : (m.raw_data?.overall_missed_pct || 0) > 0 ? 'text-yellow-600' : 'text-green-600'}`}>{m.raw_data?.overall_missed_pct ?? 0}%</td>
+                        <td className="px-3 py-3 text-center text-xs">{m.raw_data?.chat_offered ?? 0}</td>
+                        <td className={`px-3 py-3 text-center text-xs ${(m.raw_data?.chat_missed || 0) > 0 ? 'text-purple-600' : ''}`}>{m.raw_data?.chat_missed ?? 0}</td>
+                        <td className="px-3 py-3 text-center text-xs">{m.raw_data?.chat_missed_pct ?? 0}%</td>
+                        <td className="px-3 py-3 text-center text-xs">{m.raw_data?.voice_offered ?? 0}</td>
+                        <td className={`px-3 py-3 text-center text-xs ${(m.raw_data?.voice_missed || 0) > 0 ? 'text-blue-600' : ''}`}>{m.raw_data?.voice_missed ?? 0}</td>
+                        <td className="px-3 py-3 text-center text-xs">{m.raw_data?.voice_missed_pct ?? 0}%</td>
+                        <td className="px-3 py-3 text-center text-xs">{m.raw_data?.wi_offered ?? 0}</td>
+                        <td className={`px-3 py-3 text-center text-xs ${(m.raw_data?.wi_missed || 0) > 0 ? 'text-yellow-600' : ''}`}>{m.raw_data?.wi_missed ?? 0}</td>
+                        <td className="px-3 py-3 text-center text-xs">{m.raw_data?.wi_missed_pct ?? 0}%</td>
+                        <td className={`px-3 py-3 text-center text-xs font-bold ${(m.raw_data?.missed_contact_rate_live || 0) > 2 ? 'text-red-600' : (m.raw_data?.missed_contact_rate_live || 0) > 0 ? 'text-yellow-600' : 'text-green-600'}`}>{m.raw_data?.missed_contact_rate_live ?? 0}%</td>
+                      </>}
                     </tr>
                   );
                 })}

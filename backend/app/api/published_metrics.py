@@ -228,7 +228,8 @@ def get_my_performance(
             week_scores.append({
                 "week": wk, "year": yr,
                 "value": round(rec.metric_value, 2) if rec else None,
-                "score": round(rec.normalized_score, 2) if rec else None
+                "score": round(rec.normalized_score, 2) if rec else None,
+                "raw_data": rec.raw_data if rec else None
             })
 
         latest = next((s for s in reversed(week_scores) if s["score"] is not None), None)

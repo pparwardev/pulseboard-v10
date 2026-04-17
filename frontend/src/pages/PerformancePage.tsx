@@ -9,6 +9,7 @@ interface WeekScore {
   year: number;
   value: number | null;
   score: number | null;
+  raw_data?: Record<string, any> | null;
 }
 
 interface MetricData {
@@ -98,10 +99,16 @@ export default function PerformancePage() {
       { label: 'ACHT (in min)', key: 'acht_min' }, { label: 'Long Tail', key: 'long_tail' },
     ];
     if (upper.includes('MISSED') || upper.includes('MISS')) return [
-      { label: 'Live Offered', key: 'live_offered' }, { label: 'Live Missed', key: 'live_missed' },
-      { label: 'Live Missed %', key: 'live_missed_pct' }, { label: 'WI Offered', key: 'wi_offered' },
-      { label: 'WI Missed', key: 'wi_missed' }, { label: 'WI Missed %', key: 'wi_missed_pct' },
-      { label: 'Missed Duration (Mins)', key: 'missed_duration' },
+      { label: 'Site', key: 'site' },
+      { label: 'Offered', key: 'overall_offered' }, { label: 'Missed', key: 'overall_missed' },
+      { label: 'Missed%', key: 'overall_missed_pct' },
+      { label: 'Chat Off', key: 'chat_offered' }, { label: 'Chat Miss', key: 'chat_missed' },
+      { label: 'Chat%', key: 'chat_missed_pct' },
+      { label: 'Voice Off', key: 'voice_offered' }, { label: 'Voice Miss', key: 'voice_missed' },
+      { label: 'Voice%', key: 'voice_missed_pct' },
+      { label: 'WI Off', key: 'wi_offered' }, { label: 'WI Miss', key: 'wi_missed' },
+      { label: 'WI%', key: 'wi_missed_pct' },
+      { label: 'Rate Live', key: 'missed_contact_rate_live' },
     ];
     if (upper.includes('QA') || upper.includes('QUALITY')) return [
       { label: 'Case ID', key: 'case_id' }, { label: 'Monitoring Date', key: 'monitoring_date' },
@@ -428,13 +435,40 @@ export default function PerformancePage() {
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      <tr>
-                                        <td colSpan={columns.length} className="px-4 py-10 text-center text-gray-400">
-                                          <div className="text-3xl mb-2">📂</div>
-                                          <div className="text-sm font-medium">No case data available for Week {selectedBar.week}</div>
-                                          <div className="text-xs text-gray-300 mt-1">Data will populate here once uploaded</div>
-                                        </td>
-                                      </tr>
+                                      {(() => {
+                                        const selWeekData = m.weeks.find(w => w.week === selectedBar.week && w.year === selectedBar.year);
+                                        const rawData = selWeekData?.raw_data;
+                                        if (rawData && Object.keys(rawData).length > 0) {
+                                          return (
+                                            <tr className="border-b border-gray-100 hover:bg-gray-50">
+                                              {columns.map(col => {
+                                                const val = rawData[col.key];
+                                                const display = val !== undefined && val !== null ? String(val) : '-';
+                                                const isPercent = col.key.includes('pct') || col.key.includes('rate');
+                                                const numVal = parseFloat(display);
+                                                const isBad = isPercent && !isNaN(numVal) && numVal > 2;
+                                                const isWarn = isPercent && !isNaN(numVal) && numVal > 0 && numVal <= 2;
+                                                return (
+                                                  <td key={col.key} className={`px-3 py-3 whitespace-nowrap ${
+                                                    isBad ? 'text-red-600 font-bold' : isWarn ? 'text-yellow-600 font-medium' : ''
+                                                  }`}>
+                                                    {display}{isPercent && display !== '-' ? '%' : ''}
+                                                  </td>
+                                                );
+                                              })}
+                                            </tr>
+                                          );
+                                        }
+                                        return (
+                                          <tr>
+                                            <td colSpan={columns.length} className="px-4 py-10 text-center text-gray-400">
+                                              <div className="text-3xl mb-2">📂</div>
+                                              <div className="text-sm font-medium">No case data available for Week {selectedBar.week}</div>
+                                              <div className="text-xs text-gray-300 mt-1">Data will populate here once uploaded</div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })()}
                                     </tbody>
                                   </table>
                                 </div>
