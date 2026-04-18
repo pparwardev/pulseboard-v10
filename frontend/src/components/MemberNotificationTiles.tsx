@@ -6,7 +6,7 @@ interface TileMember { id: number; name: string; photo: string | null; }
 interface TileItem { text: string; time: string | null; type: string; nav: string; member_name?: string | null; member_photo?: string | null; }
 interface TileData { key: string; title: string; emoji: string; gradient: string; borderColor: string; items: TileItem[]; members: TileMember[]; count: number; nav: string; }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://65.0.122.136:8001';
 
 export default function MemberNotificationTiles({ mode = 'full', onTileExpand }: { mode?: 'full' | 'sidebar'; onTileExpand?: (tile: TileData | null) => void }) {
   const [tiles, setTiles] = useState<TileData[]>([]);

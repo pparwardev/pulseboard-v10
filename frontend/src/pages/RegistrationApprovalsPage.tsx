@@ -3,7 +3,7 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import { useTheme } from '../contexts/ThemeContext';
 
-const API_BASE = 'http://localhost:8001';
+const API_BASE = 'http://65.0.122.136:8001';
 
 export default function RegistrationApprovalsPage() {
   const user = JSON.parse(sessionStorage.getItem('user') || '{}');

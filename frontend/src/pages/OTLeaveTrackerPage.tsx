@@ -147,7 +147,7 @@ export default function OTLeaveTrackerPage() {
               }`}>
                 <span className="text-xl font-bold">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}</span>
                 {c.profile_picture ? (
-                  <img src={`http://localhost:8001${c.profile_picture}`} alt={c.name}
+                  <img src={`http://65.0.122.136:8001${c.profile_picture}`} alt={c.name}
                     className="w-10 h-10 rounded-full border-2 border-white shadow object-cover" />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-amber-500 text-white text-sm font-bold flex items-center justify-center border-2 border-white shadow">

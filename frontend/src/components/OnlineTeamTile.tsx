@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://65.0.122.136:8001';
 const initials = (n: string) => n?.split(' ').filter(w => w).map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 
 export default function OnlineTeamTile() {

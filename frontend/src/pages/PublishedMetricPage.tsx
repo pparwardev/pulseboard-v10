@@ -357,7 +357,7 @@ export default function PublishedMetricPage() {
                         <Link to={`/performance/${m.member_id}`} className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer">
                           <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
                             {m.profile_picture
-                              ? <img src={`http://localhost:8001${m.profile_picture}`} alt="" className="w-full h-full object-cover" />
+                              ? <img src={`http://65.0.122.136:8001${m.profile_picture}`} alt="" className="w-full h-full object-cover" />
                               : initials(m.name)}
                           </div>
                           <span className="font-semibold text-purple-700 hover:underline">{m.name}</span>

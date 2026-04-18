@@ -286,7 +286,7 @@ export default function LeaveCalendarPage() {
                       {teamOnLeave.slice(0, 3).map((tl: any, idx: number) => (
                         <div key={tl.id} className="relative group" style={{ zIndex: 3 - idx }}>
                           {tl.profile_picture ? (
-                            <img src={`http://localhost:8001${tl.profile_picture}`} alt={tl.user_name}
+                            <img src={`http://65.0.122.136:8001${tl.profile_picture}`} alt={tl.user_name}
                               className="w-7 h-7 rounded-full border-2 border-white shadow-sm object-cover" />
                           ) : (
                             <div className="w-7 h-7 rounded-full bg-purple-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-white shadow-sm">
@@ -346,7 +346,7 @@ export default function LeaveCalendarPage() {
               {teamOnLeave.map((tl: any) => (
                 <div key={tl.id} className="flex items-center gap-3 rounded-lg px-3 py-3 bg-gray-50 border hover:shadow-sm transition-shadow">
                   {tl.profile_picture ? (
-                    <img src={`http://localhost:8001${tl.profile_picture}`} alt={tl.user_name}
+                    <img src={`http://65.0.122.136:8001${tl.profile_picture}`} alt={tl.user_name}
                       className="w-10 h-10 rounded-full border-2 border-purple-200 object-cover" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-purple-500 text-white text-sm font-bold flex items-center justify-center border-2 border-purple-200">

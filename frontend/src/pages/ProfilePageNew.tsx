@@ -6,7 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import MultiSelectSkills from '../components/MultiSelectSkills';
 import ShiftWeekOff from '../components/ShiftWeekOff';
 
-const API_BASE = 'http://localhost:8001';
+const API_BASE = 'http://65.0.122.136:8001';
 
 const COUNTRIES = [
   'United States', 'Canada', 'United Kingdom', 'Australia', 'Germany', 'France',

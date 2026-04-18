@@ -19,7 +19,7 @@ const OPTION_COLORS = [
   { light: 'bg-cyan-50 border-cyan-200', text: 'text-cyan-700', bar: 'bg-cyan-500' },
 ];
 
-const API_BASE = 'http://localhost:8001';
+const API_BASE = 'http://65.0.122.136:8001';
 
 function Avatar({ voter }: { voter: Voter }) {
   const initials = voter.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();

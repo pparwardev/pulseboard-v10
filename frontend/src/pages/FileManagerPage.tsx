@@ -204,7 +204,7 @@ export default function FileManagerPage() {
     if (isExcel || isPdf) {
       try {
         const token = sessionStorage.getItem('token');
-        const response = await fetch(`http://localhost:8001${file.url}`, {
+        const response = await fetch(`http://65.0.122.136:8001${file.url}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const blob = await response.blob();
@@ -276,7 +276,7 @@ export default function FileManagerPage() {
     try {
       setLoading(true);
       const token = sessionStorage.getItem('token');
-      const fileResponse = await fetch(`http://localhost:8001${file.url}`, {
+      const fileResponse = await fetch(`http://65.0.122.136:8001${file.url}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const blob = await fileResponse.blob();
@@ -485,7 +485,7 @@ export default function FileManagerPage() {
               {previewFile && (
                 <>
                   <a
-                    href={`http://localhost:8001${previewFile.url}`}
+                    href={`http://65.0.122.136:8001${previewFile.url}`}
                     download={previewFile.name}
                     className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition"
                   >
@@ -605,7 +605,7 @@ export default function FileManagerPage() {
                       </div>
                     )}
                     <img 
-                      src={`http://localhost:8001${previewFile.url}`}
+                      src={`http://65.0.122.136:8001${previewFile.url}`}
                       alt={previewFile.name} 
                       className="w-full h-auto max-h-[600px] object-contain"
                       loading="lazy"
@@ -616,7 +616,7 @@ export default function FileManagerPage() {
 
                 {previewFile.type.includes('video') && (
                   <video controls className="w-full" key={previewFile.id}>
-                    <source src={`http://localhost:8001${previewFile.url}?token=${sessionStorage.getItem('token')}`} type={previewFile.type} />
+                    <source src={`http://65.0.122.136:8001${previewFile.url}?token=${sessionStorage.getItem('token')}`} type={previewFile.type} />
                     Your browser does not support video playback.
                   </video>
                 )}
@@ -628,7 +628,7 @@ export default function FileManagerPage() {
                       <p className="font-semibold text-gray-900">{previewFile.name}</p>
                     </div>
                     <audio controls className="w-full">
-                      <source src={`http://localhost:8001${previewFile.url}`} type={previewFile.type} />
+                      <source src={`http://65.0.122.136:8001${previewFile.url}`} type={previewFile.type} />
                       Your browser does not support audio playback.
                     </audio>
                   </div>
