@@ -31,7 +31,8 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    redirect_slashes=False
 )
 
 origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",")]

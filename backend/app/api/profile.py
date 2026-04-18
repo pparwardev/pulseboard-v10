@@ -9,7 +9,7 @@ import os, shutil
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
 
-@router.get("/")
+@router.get("")
 def get_profile(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     fields = ["marketplace", "contact_number", "date_of_birth", "location", "profile_picture", "shift_start", "shift_end", "week_off"]
     filled = sum(1 for f in fields if getattr(current_user, f, None) not in (None, ""))
@@ -31,7 +31,7 @@ def get_profile(db: Session = Depends(get_db), current_user: User = Depends(get_
     }
 
 
-@router.put("/")
+@router.put("")
 def update_profile(data: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     allowed = ["name", "contact_number", "shift_start", "shift_end", "week_off", "date_of_birth", "location", "skill_set", "marketplace", "supports_marketplace"]
     for key in allowed:
