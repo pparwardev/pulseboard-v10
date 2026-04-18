@@ -61,7 +61,7 @@ jobs:
         run: |
           cd frontend
           npm install
-          npm run build
+          npx vite build
 
       - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
