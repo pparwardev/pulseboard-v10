@@ -63,7 +63,7 @@ function TeamBarChart({ perfTiles, ottoMembers = [] }: { perfTiles: any[]; ottoM
                   <div className={`w-9 h-9 rounded-full border-2 overflow-hidden bg-gray-100 flex items-center justify-center text-[9px] font-bold text-gray-500 shrink-0 mb-1 ${isOnLeave ? 'opacity-50 grayscale' : ''}`}
                     style={{ borderColor: barColor(m.overall_score) }}>
                     {m.profile_picture
-                      ? <img src={`http://65.0.122.136:8001${m.profile_picture}`} alt="" className="w-full h-full object-cover" />
+                      ? <img src={`${m.profile_picture}`} alt="" className="w-full h-full object-cover" />
                       : initials(m.name)}
                   </div>
                   {isOnLeave && <span className="absolute -top-1 -right-1 text-[10px]" title="On leave today">🏖️</span>}
@@ -146,7 +146,7 @@ export default function ManagerDashboardV2() {
 
 
   const activeMembers = members.filter(m => m.is_active && m.is_approved);
-  const profilePicUrl = profileData?.profilePhoto?.url ? `http://65.0.122.136:8001${profileData.profilePhoto.url}` : null;
+  const profilePicUrl = profileData?.profilePhoto?.url ? `${profileData.profilePhoto.url}` : null;
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen" style={{ background: '#eef1f8' }}>
@@ -252,7 +252,7 @@ export default function ManagerDashboardV2() {
                         {tile.members.slice(0, 6).map((m: any) => (
                           <div key={m.id} className="w-9 h-9 rounded-full border-2 border-white/80 overflow-hidden bg-white/25 flex items-center justify-center text-[10px] font-bold transition-transform hover:scale-125 hover:z-10 relative"
                             title={`${m.name} — ${m.overall_score}%`}>
-                            {m.profile_picture ? <img src={`http://65.0.122.136:8001${m.profile_picture}`} alt="" className="w-full h-full object-cover" /> : initials(m.name)}
+                            {m.profile_picture ? <img src={`${m.profile_picture}`} alt="" className="w-full h-full object-cover" /> : initials(m.name)}
                           </div>
                         ))}
                         {tile.members.length > 6 && <div className="w-9 h-9 rounded-full border-2 border-white/80 bg-white/30 flex items-center justify-center text-[10px] font-bold">+{tile.members.length - 6}</div>}
@@ -296,7 +296,7 @@ export default function ManagerDashboardV2() {
                                 <td className="px-4 py-2.5">
                                   <div className="flex items-center gap-2">
                                     <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-[9px] font-bold shrink-0" style={{ background: tile.bg, color: '#fff' }}>
-                                      {m.profile_picture ? <img src={`http://65.0.122.136:8001${m.profile_picture}`} alt="" className="w-full h-full object-cover" /> : initials(m.name)}
+                                      {m.profile_picture ? <img src={`${m.profile_picture}`} alt="" className="w-full h-full object-cover" /> : initials(m.name)}
                                     </div>
                                     <span className="font-medium text-gray-800 text-xs whitespace-nowrap">{m.name}</span>
                                   </div>
@@ -343,7 +343,7 @@ export default function ManagerDashboardV2() {
                       onClick={() => item.nav && navigate(item.nav)}>
                       {item.member_name ? (
                         <div className="w-8 h-8 rounded-full overflow-hidden bg-purple-100 flex items-center justify-center font-bold text-purple-700 shrink-0 border border-purple-200 text-[9px]">
-                          {item.member_photo ? <img src={`http://65.0.122.136:8001${item.member_photo}`} alt="" className="w-full h-full object-cover" /> : initials(item.member_name)}
+                          {item.member_photo ? <img src={`${item.member_photo}`} alt="" className="w-full h-full object-cover" /> : initials(item.member_name)}
                         </div>
                       ) : (
                         <span className="text-base mt-0.5">{item.type === 'upload' ? '📄' : item.type === 'published' ? '📈' : item.type === 'created' ? '📊' : item.type === 'closed' ? '✅' : '🔔'}</span>
@@ -375,7 +375,7 @@ export default function ManagerDashboardV2() {
             {activeMembers.slice(0, 8).map((m: any) => (
               <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-indigo-50 transition cursor-pointer" onClick={() => navigate(`/profile/${m.id}`)}>
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-700 shrink-0">
-                  {m.profile_picture ? <img src={`http://65.0.122.136:8001${m.profile_picture}`} alt="" className="w-full h-full object-cover" /> : initials(m.name)}
+                  {m.profile_picture ? <img src={`${m.profile_picture}`} alt="" className="w-full h-full object-cover" /> : initials(m.name)}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-gray-800 truncate">{m.name}</p>

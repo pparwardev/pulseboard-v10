@@ -4,7 +4,7 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import { useTheme } from '../contexts/ThemeContext';
 
-const API_BASE = 'http://65.0.122.136:8001';
+const API_BASE = '';
 const DAY_LABELS = ['S','M','T','W','T','F','S'];
 
 function fmt24to12(t: string) {

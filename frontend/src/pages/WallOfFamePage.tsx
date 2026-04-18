@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://65.0.122.136:8001';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 const REACTIONS = ['👍', '❤️', '🎉', '🔥', '👏', '😂'];
 
 interface Comment { id: number; user_name: string; user_photo: string | null; content: string; created_at: string; }

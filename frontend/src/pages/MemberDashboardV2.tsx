@@ -7,7 +7,7 @@ import OnlineTeamTile from '../components/OnlineTeamTile';
 import { getInternalTitle } from '../utils/roleMapping';
 import './ManagerDashboardV2.css';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://65.0.122.136:8001';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function TeamBarChart({ members, myLoginId, ottoMembers = [] }: { members: any[]; myLoginId?: string; ottoMembers?: any[] }) {
   const [animated, setAnimated] = useState(false);

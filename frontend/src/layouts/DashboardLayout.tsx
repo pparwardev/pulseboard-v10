@@ -154,7 +154,7 @@ export default function DashboardLayout() {
     try {
       const res = await api.get('/api/profile');
       if (res.data.profilePhoto) {
-        setProfilePhoto(`http://65.0.122.136:8001${res.data.profilePhoto.url}`);
+        setProfilePhoto(`${res.data.profilePhoto.url}`);
       }
       setShiftStart(res.data.shift_start || undefined);
       setShiftEnd(res.data.shift_end || undefined);
