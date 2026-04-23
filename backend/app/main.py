@@ -18,6 +18,7 @@ from app.api.wall_of_fame import router as wall_of_fame_router
 from app.api.ot import router as ot_router
 from app.api.performance_analytics import router as perf_router
 from app.api.file_manager import router as file_manager_router
+from app.api.file_manager_v2 import router as file_manager_v2_router
 from app.api.metric_files import router as metric_files_router
 from app.api.metric_config import router as metric_config_router
 from app.api.published_metrics import router as published_metrics_router
@@ -56,6 +57,7 @@ app.include_router(wall_of_fame_router)
 app.include_router(ot_router)
 app.include_router(perf_router)
 app.include_router(file_manager_router)
+app.include_router(file_manager_v2_router)
 app.include_router(metric_files_router)
 app.include_router(metric_config_router)
 app.include_router(published_metrics_router)

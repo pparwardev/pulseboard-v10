@@ -50,6 +50,7 @@ const navigation = [
     subItems: [
       { name: 'Analytics', path: '/performance', icon: '📈', roles: ['manager'] },
       { name: 'File Manager', path: '/file-manager', icon: '📁', roles: ['manager'] },
+      { name: 'File Manager V2', path: '/file-manager-v2', icon: '📂', roles: ['manager'] },
       { name: 'Metrics Config', path: '/metrics-config', icon: '⚙️', roles: ['manager'] },
     ]
   },

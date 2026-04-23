@@ -21,6 +21,7 @@ import PerformanceAnalyticsPage from './pages/PerformanceAnalyticsPageNew';
 import PublishedMetricPage from './pages/PublishedMetricPage';
 import PerformancePage from './pages/PerformancePage';
 import FileManagerPage from './pages/FileManagerPage';
+import FileManagerV2Page from './pages/FileManagerV2Page';
 import MetricsConfigPage from './pages/MetricsConfigPage';
 import MetricDetailPage from './pages/MetricDetailPage';
 
@@ -76,6 +77,7 @@ export default function App() {
               <Route path="/performance/:memberId" element={<PerformancePage />} />
               <Route path="/published-metric/:metricCode" element={<PublishedMetricPage />} />
               <Route path="/file-manager" element={<FileManagerPage />} />
+              <Route path="/file-manager-v2" element={<FileManagerV2Page />} />
               <Route path="/metrics-config" element={<MetricsConfigPage />} />
               <Route path="/my-performance" element={<PerformancePage />} />
               <Route path="/my-performance/:memberId" element={<PerformancePage />} />
