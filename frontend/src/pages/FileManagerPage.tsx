@@ -243,15 +243,19 @@ export default function FileManagerPage() {
   };
 
   const uploadFile = async (file: File): Promise<FileItem | null> => {
-    const formData = new FormData();
-    formData.append('file', file);
     const params = new URLSearchParams();
     if (selectedMetric) params.append('metric_code', selectedMetric);
     if (selectedWeek) params.append('week_label', selectedWeek);
 
     try {
-      const res = await api.post(`/api/file-manager/upload?${params.toString()}`, formData);
-      console.log('Upload raw response:', typeof res.data, res.data);
+      // Convert file to base64 JSON to avoid CloudFront multipart issues
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      const res = await api.post(`/api/file-manager/upload-base64?${params.toString()}`, {
+        filename: file.name,
+        content_type: file.type || 'application/octet-stream',
+        data: base64
+      });
       if (res.data && typeof res.data === 'object' && res.data.id) {
         return res.data as FileItem;
       }

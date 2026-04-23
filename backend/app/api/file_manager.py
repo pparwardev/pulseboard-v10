@@ -43,6 +43,26 @@ async def upload_file(file: UploadFile = File(...), metric_code: str = None, wee
     return {"id": fu.id, "name": fu.original_filename, "size": fu.file_size, "type": fu.file_type, "metric_code": fu.metric_code, "uploaded_at": fu.uploaded_at.isoformat(), "week_label": fu.week_label, "url": f"/api/file-manager/download/{fu.id}"}
 
 
+@router.post("/upload-base64")
+async def upload_file_base64(request: dict, metric_code: str = None, week_label: str = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    import base64
+    filename = request.get('filename', 'upload.bin')
+    content_type = request.get('content_type', 'application/octet-stream')
+    data = base64.b64decode(request.get('data', ''))
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    prefix = f"{metric_code}_" if metric_code else ""
+    stored_name = f"{current_user.id}_{prefix}{timestamp}_{filename}"
+    file_path = os.path.join(UPLOAD_DIR, stored_name)
+    with open(file_path, "wb") as f:
+        f.write(data)
+    file_size = os.path.getsize(file_path)
+    fu = FileUpload(user_id=current_user.id, filename=stored_name, original_filename=filename, file_path=file_path, file_size=file_size, file_type=content_type, metric_code=metric_code, week_label=week_label)
+    db.add(fu)
+    db.commit()
+    db.refresh(fu)
+    return {"id": fu.id, "name": fu.original_filename, "size": fu.file_size, "type": fu.file_type, "metric_code": fu.metric_code, "uploaded_at": fu.uploaded_at.isoformat(), "week_label": fu.week_label, "url": f"/api/file-manager/download/{fu.id}"}
+
+
 @router.get("/files")
 async def get_files(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.role == "manager" and current_user.team_name:
