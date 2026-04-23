@@ -1,0 +1,123 @@
+name: Deploy PulseBoard
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare EC2 for upload
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            rm -f /home/ubuntu/backend/team-photos 2>/dev/null
+            mkdir -p /home/ubuntu/backend/profile-photos
+
+      - name: Upload Backend Code
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "backend/"
+          target: "/home/ubuntu/"
+          overwrite: true
+          rm: false
+
+      - name: Upload Team Photos
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "frontend/public/team-photos/"
+          target: "/home/ubuntu/backend/"
+          overwrite: false
+          strip_components: 2
+
+      - name: Install Dependencies
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            cd /home/ubuntu/backend
+            mkdir -p profile-photos uploads/profiles uploads/file_manager
+            source venv/bin/activate
+            pip install -r requirements.txt --quiet --no-input
+            find . -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
+            python3 -c "from app.main import app; print('App validation OK')"
+
+      - name: Restart Backend
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 3m
+          script: |
+            sudo systemctl stop pulseboard || true
+            pkill -9 gunicorn 2>/dev/null || true
+            sleep 2
+            sudo systemctl start pulseboard
+            echo 'Service start command completed'
+
+      - name: Health Check
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 3m
+          script: |
+            echo 'Waiting for backend to be ready...'
+            sleep 45
+            for i in 1 2 3 4 5 6 7 8; do
+              if curl -sf --max-time 5 http://localhost:8001/health; then
+                echo 'Backend OK'
+                exit 0
+              fi
+              echo "Attempt $i: waiting..."
+              sleep 5
+            done
+            echo 'Health check failed'
+            sudo journalctl -u pulseboard --no-pager -n 30
+            exit 1
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm install
+          npx vite build
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Upload to S3
+        run: aws s3 sync frontend/dist/ s3://pulseboard-frontend-app/ --delete
+
+      - name: Invalidate CloudFront Cache
+        run: aws cloudfront create-invalidation --distribution-id E2JBJNGGN2CE7R --paths "/*"

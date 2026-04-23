@@ -1,0 +1,20 @@
+# Dependencies
+frontend/node_modules/
+backend/venv/
+
+# Environment files
+.env
+backend/.env
+frontend/.env
+
+# Logs
+*.log
+*.pid
+
+# Uploads
+backend/uploads/
+backend/team-photos/
+
+# Python
+__pycache__/
+*.pyc

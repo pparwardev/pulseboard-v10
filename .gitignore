@@ -1,0 +1,26 @@
+# Dependencies
+frontend/node_modules/
+backend/venv/
+
+# Environment files
+.env
+backend/.env
+frontend/.env
+
+# Logs
+*.log
+*.pid
+
+# Uploads
+backend/uploads/
+backend/team-photos/
+
+# Build output
+frontend/dist/
+
+# Python
+__pycache__/
+*.pyc
+frontend/dist/
+aws/
+awscliv2.zip
