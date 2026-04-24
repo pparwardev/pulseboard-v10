@@ -46,7 +46,7 @@ async def upload_file(file: UploadFile = File(...), metric_code: str = None, wee
 @router.post("/upload-base64")
 async def upload_file_base64(request: dict, metric_code: str = None, week_label: str = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     import base64
-    from werkzeug.utils import secure_filename
+    import re
     
     filename = request.get('filename', 'upload.bin')
     content_type = request.get('content_type', 'application/octet-stream')
@@ -58,9 +58,10 @@ async def upload_file_base64(request: dict, metric_code: str = None, week_label:
     if estimated_size > MAX_FILE_SIZE:
         raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB")
     
-    # Validate filename to prevent path traversal
-    safe_filename = secure_filename(filename)
-    if not safe_filename:
+    # Simple filename sanitization (without werkzeug dependency)
+    safe_filename = re.sub(r'[^\w\-_\.]', '_', filename)
+    safe_filename = safe_filename.strip('._')
+    if not safe_filename or safe_filename in ['.', '..']:
         raise HTTPException(status_code=400, detail="Invalid filename")
     
     # Validate file extension
