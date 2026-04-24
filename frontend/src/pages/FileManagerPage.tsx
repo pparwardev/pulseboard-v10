@@ -243,6 +243,14 @@ export default function FileManagerPage() {
   };
 
   const uploadFile = async (file: File): Promise<FileItem | null> => {
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
+    
+    // Check file size before upload
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
+      return null;
+    }
+    
     const params = new URLSearchParams();
     if (selectedMetric) params.append('metric_code', selectedMetric);
     if (selectedWeek) params.append('week_label', selectedWeek);
@@ -251,6 +259,17 @@ export default function FileManagerPage() {
       // Convert file to base64 JSON to avoid CloudFront multipart issues
       const arrayBuffer = await file.arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      
+      // Check base64 size (will be ~33% larger than original)
+      const base64Size = base64.length;
+      const estimatedRequestSize = base64Size + 1000; // Add overhead for JSON
+      const MAX_REQUEST_SIZE = 6 * 1024 * 1024; // 6MB CloudFront limit
+      
+      if (estimatedRequestSize > MAX_REQUEST_SIZE) {
+        toast.error(`File too large for upload. Try a smaller file (max ~4MB)`);
+        return null;
+      }
+      
       const res = await api.post(`/api/file-manager/upload-base64?${params.toString()}`, {
         filename: file.name,
         content_type: file.type || 'application/octet-stream',
@@ -263,9 +282,15 @@ export default function FileManagerPage() {
       toast.error(`Upload failed - server returned invalid response`);
       return null;
     } catch (err: any) {
-      console.error('Upload failed:', err?.response?.status, err?.message);
-      toast.error(`Failed to upload ${file.name}`);
-      throw err;
+      if (err?.response?.status === 413) {
+        toast.error('File too large. Please use a smaller file.');
+      } else if (err?.response?.status === 400) {
+        toast.error(err?.response?.data?.detail || 'Invalid file or filename');
+      } else {
+        console.error('Upload failed:', err?.response?.status, err?.message);
+        toast.error(`Failed to upload ${file.name}`);
+      }
+      return null;
     }
   };
 

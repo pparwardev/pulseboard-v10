@@ -46,17 +46,51 @@ async def upload_file(file: UploadFile = File(...), metric_code: str = None, wee
 @router.post("/upload-base64")
 async def upload_file_base64(request: dict, metric_code: str = None, week_label: str = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     import base64
+    from werkzeug.utils import secure_filename
+    
     filename = request.get('filename', 'upload.bin')
     content_type = request.get('content_type', 'application/octet-stream')
-    data = base64.b64decode(request.get('data', ''))
+    base64_data = request.get('data', '')
+    
+    # Validate file size before decoding (base64 is ~33% larger than original)
+    estimated_size = len(base64_data) * 3 // 4
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB limit
+    if estimated_size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB")
+    
+    # Validate filename to prevent path traversal
+    safe_filename = secure_filename(filename)
+    if not safe_filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    # Validate file extension
+    ALLOWED_EXTENSIONS = {'.xlsx', '.xls', '.csv', '.xlsm', '.xlsb', '.pdf', '.doc', '.docx'}
+    file_ext = os.path.splitext(safe_filename)[1].lower()
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="File type not allowed")
+    
+    try:
+        data = base64.b64decode(base64_data)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid base64 data")
+    
+    # Final size check after decoding
+    if len(data) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB")
+    
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     prefix = f"{metric_code}_" if metric_code else ""
-    stored_name = f"{current_user.id}_{prefix}{timestamp}_{filename}"
+    stored_name = f"{current_user.id}_{prefix}{timestamp}_{safe_filename}"
     file_path = os.path.join(UPLOAD_DIR, stored_name)
+    
+    # Ensure the upload directory exists and is secure
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    
     with open(file_path, "wb") as f:
         f.write(data)
-    file_size = os.path.getsize(file_path)
-    fu = FileUpload(user_id=current_user.id, filename=stored_name, original_filename=filename, file_path=file_path, file_size=file_size, file_type=content_type, metric_code=metric_code, week_label=week_label)
+    
+    file_size = len(data)
+    fu = FileUpload(user_id=current_user.id, filename=stored_name, original_filename=safe_filename, file_path=file_path, file_size=file_size, file_type=content_type, metric_code=metric_code, week_label=week_label)
     db.add(fu)
     db.commit()
     db.refresh(fu)
